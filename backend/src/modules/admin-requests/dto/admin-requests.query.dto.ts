@@ -1,5 +1,5 @@
 import { RequestStatus, RequestType, SlaStatus } from '@prisma/client';
-import { Type } from 'class-transformer/types/decorators/type.decorator';
+import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class AdminRequestsQueryDto {

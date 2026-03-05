@@ -6,6 +6,9 @@ import {
   AdminRequestDetailResponse,
   AdminRequestListResponse,
 } from './admin-requests.types';
+import { AdminRequestActionDto } from './dto/admin-request-action.dto';
+import { assertValidTransition } from './rules/request-transition.rules';
+import { updateSlaOnStatusChange } from './rules/sla.rules';
 
 @Injectable()
 export class AdminRequestsService {
@@ -112,5 +115,46 @@ export class AdminRequestsService {
     }
 
     return req;
+  }
+
+  async updateStatus(id: string, dto: AdminRequestActionDto) {
+    await this.prisma.$transaction(async (tx) => {
+      const req = await tx.request.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+
+      if (!req) {
+        throw new NotFoundException({
+          code: 'NOT_FOUND',
+          message: 'Request not found',
+        });
+      }
+
+      assertValidTransition(req.status, dto.status);
+
+      await tx.request.update({
+        where: { id },
+        data: {
+          status: dto.status,
+          latestActivityAt: new Date(),
+          closedAt: dto.status === 'DONE' ? new Date() : null,
+        },
+      });
+
+      await updateSlaOnStatusChange(tx, id, dto.status);
+
+      await tx.requestActivityLog.create({
+        data: {
+          requestId: id,
+          action: 'STATUS_CHANGE',
+          fromStatus: req.status,
+          toStatus: dto.status,
+          actorRole: 'ADMIN',
+          operatorId: dto.operatorId,
+          note: dto.note,
+        },
+      });
+    });
   }
 }
