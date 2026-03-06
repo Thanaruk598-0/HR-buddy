@@ -6,19 +6,23 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { RequestsService } from './requests.service';
-
-import { CreateBuildingRequestDto } from './dto/create-building-request.dto';
-import { CreateVehicleRequestDto } from './dto/create-vehicle-request.dto';
-import { CreateMessengerRequestDto } from './dto/create-messenger-request.dto';
-import { CreateDocumentRequestDto } from './dto/create-document-request.dto';
+import { CreateAttachmentDto } from '../attachments/dto/create-attachment.dto';
+import { AttachmentsService } from '../attachments/attachments.service';
 import { EmployeeSession } from '../auth-otp/employee-session.decorator';
 import { EmployeeSessionGuard } from '../auth-otp/employee-session.guard';
 import type { EmployeeSessionPrincipal } from '../auth-otp/employee-session.types';
+import { CreateBuildingRequestDto } from './dto/create-building-request.dto';
+import { CreateDocumentRequestDto } from './dto/create-document-request.dto';
+import { CreateMessengerRequestDto } from './dto/create-messenger-request.dto';
+import { CreateVehicleRequestDto } from './dto/create-vehicle-request.dto';
+import { RequestsService } from './requests.service';
 
 @Controller('requests')
 export class RequestsController {
-  constructor(private readonly requestsService: RequestsService) {}
+  constructor(
+    private readonly requestsService: RequestsService,
+    private readonly attachmentsService: AttachmentsService,
+  ) {}
 
   @Post('building')
   createBuilding(@Body() dto: CreateBuildingRequestDto) {
@@ -41,6 +45,16 @@ export class RequestsController {
   }
 
   @UseGuards(EmployeeSessionGuard)
+  @Post(':id/attachments')
+  addAttachment(
+    @Param('id') id: string,
+    @Body() dto: CreateAttachmentDto,
+    @EmployeeSession() session: EmployeeSessionPrincipal,
+  ) {
+    return this.attachmentsService.addEmployeeAttachment(id, session.phone, dto);
+  }
+
+  @UseGuards(EmployeeSessionGuard)
   @Get('my')
   myRequests(@EmployeeSession() session: EmployeeSessionPrincipal) {
     return this.requestsService.getMyRequests(session.phone);
@@ -48,7 +62,10 @@ export class RequestsController {
 
   @UseGuards(EmployeeSessionGuard)
   @Get(':id')
-  detail(@Param('id') id: string, @EmployeeSession() session: EmployeeSessionPrincipal) {
+  detail(
+    @Param('id') id: string,
+    @EmployeeSession() session: EmployeeSessionPrincipal,
+  ) {
     return this.requestsService.getRequestDetail(id, session.phone);
   }
 }
