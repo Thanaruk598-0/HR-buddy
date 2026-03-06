@@ -31,10 +31,7 @@ const STATUS_TO_EVENT: Partial<Record<RequestStatus, NotificationEventType>> = {
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(
-    data: CreateNotificationInput,
-    tx?: Tx,
-  ) {
+  async create(data: CreateNotificationInput, tx?: Tx) {
     return this.client(tx).notification.create({
       data: {
         recipientRole: data.recipientRole,
@@ -95,6 +92,26 @@ export class NotificationsService {
         eventType: NotificationEventType.MESSENGER_BOOKED,
         title: 'New messenger booking request',
         message: `Request ${params.requestNo} from ${params.employeeName}`,
+      },
+      tx,
+    );
+  }
+
+  async notifyAdminRequestCanceled(
+    params: {
+      requestId: string;
+      requestNo: string;
+      reason: string;
+    },
+    tx?: Tx,
+  ) {
+    await this.create(
+      {
+        recipientRole: RecipientRole.ADMIN,
+        requestId: params.requestId,
+        eventType: NotificationEventType.CANCELED,
+        title: 'Request canceled by employee',
+        message: `Request ${params.requestNo}: ${params.reason}`,
       },
       tx,
     );
@@ -217,7 +234,10 @@ export class NotificationsService {
     return { updated: result.count };
   }
 
-  private async list(where: Prisma.NotificationWhereInput, q: NotificationListQueryDto) {
+  private async list(
+    where: Prisma.NotificationWhereInput,
+    q: NotificationListQueryDto,
+  ) {
     const MAX_LIMIT = 200;
     const DEFAULT_LIMIT = 20;
     const DEFAULT_PAGE = 1;

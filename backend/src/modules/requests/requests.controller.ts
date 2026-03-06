@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -11,6 +12,7 @@ import { AttachmentsService } from '../attachments/attachments.service';
 import { EmployeeSession } from '../auth-otp/employee-session.decorator';
 import { EmployeeSessionGuard } from '../auth-otp/employee-session.guard';
 import type { EmployeeSessionPrincipal } from '../auth-otp/employee-session.types';
+import { CancelRequestDto } from './dto/cancel-request.dto';
 import { CreateBuildingRequestDto } from './dto/create-building-request.dto';
 import { CreateDocumentRequestDto } from './dto/create-document-request.dto';
 import { CreateMessengerRequestDto } from './dto/create-messenger-request.dto';
@@ -51,7 +53,21 @@ export class RequestsController {
     @Body() dto: CreateAttachmentDto,
     @EmployeeSession() session: EmployeeSessionPrincipal,
   ) {
-    return this.attachmentsService.addEmployeeAttachment(id, session.phone, dto);
+    return this.attachmentsService.addEmployeeAttachment(
+      id,
+      session.phone,
+      dto,
+    );
+  }
+
+  @UseGuards(EmployeeSessionGuard)
+  @Patch(':id/cancel')
+  cancel(
+    @Param('id') id: string,
+    @Body() dto: CancelRequestDto,
+    @EmployeeSession() session: EmployeeSessionPrincipal,
+  ) {
+    return this.requestsService.cancelRequest(id, session.phone, dto.reason);
   }
 
   @UseGuards(EmployeeSessionGuard)

@@ -28,6 +28,12 @@ import {
 } from './rules/vehicle.rules';
 import { assertMessengerDeliveryRule } from './rules/messenger.rules';
 import { assertDocumentCreateRule } from './rules/document.rules';
+import {
+  assertEmployeeCancelableStatus,
+  normalizeCancelReason,
+} from './rules/cancel-request.rules';
+import { updateSlaOnStatusChange } from '../admin-requests/rules/sla.rules';
+import { MessengerService } from '../messenger/messenger.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 function pad2(n: number) {
@@ -35,9 +41,8 @@ function pad2(n: number) {
 }
 
 /**
- * NOTE: requestNo à¹ƒà¸™ schema à¹„à¸¡à¹ˆà¸¡à¸µ default
- * à¸•à¸­à¸™à¸™à¸µà¹‰ generate à¹à¸šà¸š deterministic-ish à¹ƒà¸«à¹‰ unique à¸žà¸­à¹ƒà¸Šà¹‰ dev
- * à¸–à¹‰à¸²à¹‚à¸›à¸£à¹€à¸ˆà¸„à¸¡à¸µ format à¸ˆà¸£à¸´à¸‡ (à¹€à¸Šà¹ˆà¸™ HRB-YYYYMM-000123) à¸„à¹ˆà¸­à¸¢à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸—à¸µà¸«à¸¥à¸±à¸‡
+ * Generates a user-facing request number for dev/staging usage.
+ * If your company needs a strict sequence format, replace this generator later.
  */
 function generateRequestNo(now = new Date()) {
   const y = now.getFullYear();
@@ -61,6 +66,7 @@ type DetailCreator = (tx: Tx, requestId: string) => Promise<void>;
 export class RequestsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly messengerService: MessengerService,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -299,7 +305,7 @@ export class RequestsService {
       departmentId: dto.departmentId,
       phone: dto.phone,
       detailCreator: async (tx, requestId) => {
-        // POSTAL: à¸ªà¸£à¹‰à¸²à¸‡ address snapshot à¹à¸¥à¹‰à¸§à¸œà¸¹à¸ deliveryAddressId
+        // POSTAL: create immutable address snapshot and bind deliveryAddressId
         let deliveryAddressId: string | null = null;
 
         if (dto.deliveryMethod === 'POSTAL') {
@@ -333,15 +339,89 @@ export class RequestsService {
             deliveryMethod: dto.deliveryMethod,
             note: dto.note ?? null,
 
-            deliveryAddressId, // POSTAL à¹€à¸—à¹ˆà¸²à¸™à¸±à¹‰à¸™
-            digitalFileAttachmentId: null, // HR à¸ˆà¸°à¸­à¸±à¸›à¹‚à¸«à¸¥à¸”à¸•à¸­à¸™ DONE (admin action step à¸–à¸±à¸”à¹„à¸›)
-            pickupNote: null, // HR à¸ˆà¸°à¹ƒà¸ªà¹ˆà¸•à¸­à¸™ DONE (PICKUP)
+            deliveryAddressId, // POSTAL only
+            digitalFileAttachmentId: null, // admin fills before DONE for DIGITAL
+            pickupNote: null, // admin fills before DONE for PICKUP
           },
         });
       },
     });
   }
 
+  async cancelRequest(id: string, phone: string, reason: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const req = await tx.request.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          requestNo: true,
+          type: true,
+          status: true,
+          phone: true,
+        },
+      });
+
+      if (!req) {
+        throw new NotFoundException({
+          code: 'NOT_FOUND',
+          message: 'Request not found',
+        });
+      }
+
+      if (req.phone !== phone) {
+        throw new ForbiddenException({
+          code: 'FORBIDDEN',
+          message: 'Not your request',
+        });
+      }
+
+      assertEmployeeCancelableStatus(req.status);
+
+      const normalizedReason = normalizeCancelReason(reason);
+      const now = new Date();
+
+      await tx.request.update({
+        where: { id },
+        data: {
+          status: RequestStatus.CANCELED,
+          cancelReason: normalizedReason,
+          closedAt: now,
+          latestActivityAt: now,
+        },
+      });
+
+      await tx.requestActivityLog.create({
+        data: {
+          requestId: id,
+          action: ActivityAction.CANCEL,
+          fromStatus: req.status,
+          toStatus: RequestStatus.CANCELED,
+          actorRole: ActorRole.EMPLOYEE,
+          note: normalizedReason,
+        },
+      });
+
+      await updateSlaOnStatusChange(tx, id, RequestStatus.CANCELED, now);
+
+      if (req.type === RequestType.MESSENGER) {
+        await this.messengerService.revokeMagicLinkForRequest(tx, id);
+      }
+
+      await this.notificationsService.notifyAdminRequestCanceled(
+        {
+          requestId: id,
+          requestNo: req.requestNo,
+          reason: normalizedReason,
+        },
+        tx,
+      );
+
+      return {
+        id,
+        status: RequestStatus.CANCELED,
+      };
+    });
+  }
   // -----------------------------
   // Feature: MY REQUESTS
   // -----------------------------
