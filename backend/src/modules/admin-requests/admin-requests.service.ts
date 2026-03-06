@@ -10,6 +10,11 @@ import { AdminRequestActionDto } from './dto/admin-request-action.dto';
 import { assertValidTransition } from './rules/request-transition.rules';
 import { updateSlaOnStatusChange } from './rules/sla.rules';
 import { assertDocumentPreconditions } from './rules/document-precondition.rules';
+import {
+  assertActionNoteRule,
+  isTerminalStatus,
+  normalizeNote,
+} from './rules/request-action.rules';
 
 @Injectable()
 export class AdminRequestsService {
@@ -164,6 +169,9 @@ export class AdminRequestsService {
 
       assertValidTransition(req.type, req.status, dto.status);
 
+      const normalizedNote = normalizeNote(dto.note);
+      assertActionNoteRule(dto.status, normalizedNote);
+
       if (req.type === 'DOCUMENT') {
         const detail = req.documentRequestDetail;
 
@@ -236,7 +244,7 @@ export class AdminRequestsService {
         data: {
           status: dto.status,
           latestActivityAt: new Date(),
-          closedAt: dto.status === 'DONE' ? new Date() : null,
+          closedAt: isTerminalStatus(dto.status) ? new Date() : null,
         },
       });
 
@@ -250,7 +258,7 @@ export class AdminRequestsService {
           toStatus: dto.status,
           actorRole: 'ADMIN',
           operatorId: dto.operatorId,
-          note: dto.note,
+          note: normalizedNote,
         },
       });
     });
