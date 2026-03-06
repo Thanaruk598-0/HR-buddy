@@ -4,4 +4,6 @@ export default () => ({
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
+  otpHashSecret:
+    process.env.OTP_HASH_SECRET ?? 'dev-only-change-this-otp-hash-secret',
 });

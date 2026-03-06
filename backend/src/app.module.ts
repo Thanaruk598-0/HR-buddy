@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RequestsModule } from './modules/requests/requests.module';
 import { AdminRequestsModule } from './modules/admin-requests/admin-requests.module';
 import { ReferenceModule } from './modules/reference/reference.module';
+import { AuthOtpModule } from './modules/auth-otp/auth-otp.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ReferenceModule } from './modules/reference/reference.module';
     RequestsModule,
     AdminRequestsModule,
     ReferenceModule,
+    AuthOtpModule,
   ],
   controllers: [AppController],
 })

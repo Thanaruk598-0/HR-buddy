@@ -1,14 +1,20 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { RequestsService } from './requests.service';
-import { Get, Query } from '@nestjs/common';
-import { Param } from '@nestjs/common';
 
 import { CreateBuildingRequestDto } from './dto/create-building-request.dto';
 import { CreateVehicleRequestDto } from './dto/create-vehicle-request.dto';
 import { CreateMessengerRequestDto } from './dto/create-messenger-request.dto';
 import { CreateDocumentRequestDto } from './dto/create-document-request.dto';
-import { MyRequestsQueryDto } from './dto/my-requests.query.dto';
-import { RequestDetailQueryDto } from './dto/request-detail.query.dto';
+import { EmployeeSession } from '../auth-otp/employee-session.decorator';
+import { EmployeeSessionGuard } from '../auth-otp/employee-session.guard';
+import type { EmployeeSessionPrincipal } from '../auth-otp/employee-session.types';
 
 @Controller('requests')
 export class RequestsController {
@@ -34,13 +40,15 @@ export class RequestsController {
     return this.requestsService.createDocument(dto);
   }
 
+  @UseGuards(EmployeeSessionGuard)
   @Get('my')
-  myRequests(@Query() q: MyRequestsQueryDto) {
-    return this.requestsService.getMyRequests(q.phone);
+  myRequests(@EmployeeSession() session: EmployeeSessionPrincipal) {
+    return this.requestsService.getMyRequests(session.phone);
   }
 
+  @UseGuards(EmployeeSessionGuard)
   @Get(':id')
-  detail(@Param('id') id: string, @Query() q: RequestDetailQueryDto) {
-    return this.requestsService.getRequestDetail(id, q.phone);
+  detail(@Param('id') id: string, @EmployeeSession() session: EmployeeSessionPrincipal) {
+    return this.requestsService.getRequestDetail(id, session.phone);
   }
 }
