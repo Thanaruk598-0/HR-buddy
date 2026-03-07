@@ -6,6 +6,7 @@ import { AppController } from './app.controller';
 import { GeoModule } from './geo/geo.module';
 import { AdminAuthModule } from './modules/admin-auth/admin-auth.module';
 import { AdminRequestsModule } from './modules/admin-requests/admin-requests.module';
+import { AdminSettingsModule } from './modules/admin-settings/admin-settings.module';
 import { AuthOtpModule } from './modules/auth-otp/auth-otp.module';
 import { MessengerModule } from './modules/messenger/messenger.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -25,6 +26,7 @@ import { PrismaModule } from './prisma/prisma.module';
     RequestsModule,
     AdminAuthModule,
     AdminRequestsModule,
+    AdminSettingsModule,
     ReferenceModule,
     AuthOtpModule,
     MessengerModule,
