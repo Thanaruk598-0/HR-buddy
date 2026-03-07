@@ -40,6 +40,24 @@ export default () => ({
       ),
     },
   },
+  retention: {
+    enabled: process.env.RETENTION_ENABLED === 'true',
+    runOnStartup: process.env.RETENTION_RUN_ON_STARTUP === 'true',
+    intervalHours: parseInt(process.env.RETENTION_INTERVAL_HOURS ?? '24', 10),
+    otpSessionsDays: parseInt(process.env.RETENTION_OTP_SESSIONS_DAYS ?? '7', 10),
+    employeeSessionsDays: parseInt(
+      process.env.RETENTION_EMPLOYEE_SESSIONS_DAYS ?? '7',
+      10,
+    ),
+    notificationsDays: parseInt(
+      process.env.RETENTION_NOTIFICATIONS_DAYS ?? '180',
+      10,
+    ),
+    activityLogsDays: parseInt(
+      process.env.RETENTION_ACTIVITY_LOGS_DAYS ?? '365',
+      10,
+    ),
+  },
   messengerMagicLinkSecret:
     process.env.MESSENGER_MAGIC_LINK_SECRET ??
     'dev-only-change-this-messenger-magic-link-secret',

@@ -36,6 +36,14 @@ export const envValidationSchema = Joi.object({
   ATTACHMENT_STORAGE_WEBHOOK_API_KEY: Joi.string().allow('').optional(),
   ATTACHMENT_STORAGE_WEBHOOK_TIMEOUT_MS: Joi.number().integer().min(500).default(5000),
 
+  RETENTION_ENABLED: Joi.boolean().default(false),
+  RETENTION_RUN_ON_STARTUP: Joi.boolean().default(false),
+  RETENTION_INTERVAL_HOURS: Joi.number().integer().min(1).default(24),
+  RETENTION_OTP_SESSIONS_DAYS: Joi.number().integer().min(1).default(7),
+  RETENTION_EMPLOYEE_SESSIONS_DAYS: Joi.number().integer().min(1).default(7),
+  RETENTION_NOTIFICATIONS_DAYS: Joi.number().integer().min(1).default(180),
+  RETENTION_ACTIVITY_LOGS_DAYS: Joi.number().integer().min(1).default(365),
+
   MESSENGER_MAGIC_LINK_SECRET: Joi.string()
     .min(16)
     .default('dev-only-change-this-messenger-magic-link-secret'),

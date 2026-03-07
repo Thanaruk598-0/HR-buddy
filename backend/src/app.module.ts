@@ -8,6 +8,7 @@ import { AdminAuthModule } from './modules/admin-auth/admin-auth.module';
 import { AdminRequestsModule } from './modules/admin-requests/admin-requests.module';
 import { AdminSettingsModule } from './modules/admin-settings/admin-settings.module';
 import { AuthOtpModule } from './modules/auth-otp/auth-otp.module';
+import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { MessengerModule } from './modules/messenger/messenger.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ReferenceModule } from './modules/reference/reference.module';
@@ -31,6 +32,7 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthOtpModule,
     MessengerModule,
     NotificationsModule,
+    MaintenanceModule,
   ],
   controllers: [AppController],
 })
