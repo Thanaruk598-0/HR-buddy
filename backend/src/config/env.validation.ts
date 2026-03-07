@@ -18,6 +18,24 @@ export const envValidationSchema = Joi.object({
   }),
   OTP_WEBHOOK_API_KEY: Joi.string().allow('').optional(),
   OTP_WEBHOOK_TIMEOUT_MS: Joi.number().integer().min(500).default(5000),
+
+  ATTACHMENT_UPLOAD_TICKET_SECRET: Joi.string()
+    .min(16)
+    .default('dev-only-change-this-attachment-upload-ticket-secret'),
+  ATTACHMENT_UPLOAD_TICKET_TTL_SECONDS: Joi.number().integer().min(60).default(900),
+  ATTACHMENT_DOWNLOAD_URL_TTL_SECONDS: Joi.number().integer().min(60).default(900),
+  ATTACHMENT_STORAGE_PROVIDER: Joi.string().valid('local', 'webhook').default('local'),
+  ATTACHMENT_STORAGE_BASE_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .default('http://localhost:3001/storage/mock'),
+  ATTACHMENT_STORAGE_WEBHOOK_URL: Joi.when('ATTACHMENT_STORAGE_PROVIDER', {
+    is: 'webhook',
+    then: Joi.string().uri({ scheme: ['http', 'https'] }).required(),
+    otherwise: Joi.string().uri({ scheme: ['http', 'https'] }).optional(),
+  }),
+  ATTACHMENT_STORAGE_WEBHOOK_API_KEY: Joi.string().allow('').optional(),
+  ATTACHMENT_STORAGE_WEBHOOK_TIMEOUT_MS: Joi.number().integer().min(500).default(5000),
+
   MESSENGER_MAGIC_LINK_SECRET: Joi.string()
     .min(16)
     .default('dev-only-change-this-messenger-magic-link-secret'),

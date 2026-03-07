@@ -15,6 +15,31 @@ export default () => ({
     webhookApiKey: process.env.OTP_WEBHOOK_API_KEY ?? null,
     webhookTimeoutMs: parseInt(process.env.OTP_WEBHOOK_TIMEOUT_MS ?? '5000', 10),
   },
+  attachments: {
+    uploadTicketSecret:
+      process.env.ATTACHMENT_UPLOAD_TICKET_SECRET ??
+      'dev-only-change-this-attachment-upload-ticket-secret',
+    uploadTicketTtlSeconds: parseInt(
+      process.env.ATTACHMENT_UPLOAD_TICKET_TTL_SECONDS ?? '900',
+      10,
+    ),
+    downloadUrlTtlSeconds: parseInt(
+      process.env.ATTACHMENT_DOWNLOAD_URL_TTL_SECONDS ?? '900',
+      10,
+    ),
+    storage: {
+      provider: process.env.ATTACHMENT_STORAGE_PROVIDER ?? 'local',
+      baseUrl:
+        process.env.ATTACHMENT_STORAGE_BASE_URL ??
+        'http://localhost:3001/storage/mock',
+      webhookUrl: process.env.ATTACHMENT_STORAGE_WEBHOOK_URL ?? null,
+      webhookApiKey: process.env.ATTACHMENT_STORAGE_WEBHOOK_API_KEY ?? null,
+      webhookTimeoutMs: parseInt(
+        process.env.ATTACHMENT_STORAGE_WEBHOOK_TIMEOUT_MS ?? '5000',
+        10,
+      ),
+    },
+  },
   messengerMagicLinkSecret:
     process.env.MESSENGER_MAGIC_LINK_SECRET ??
     'dev-only-change-this-messenger-magic-link-secret',

@@ -11,7 +11,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { CompleteAttachmentUploadDto } from '../attachments/dto/complete-attachment-upload.dto';
 import { CreateAttachmentDto } from '../attachments/dto/create-attachment.dto';
+import { CreateAttachmentUploadTicketDto } from '../attachments/dto/create-attachment-upload-ticket.dto';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { AdminSessionGuard } from '../admin-auth/admin-session.guard';
 import { AdminRequestActionDto } from './dto/admin-request-action.dto';
@@ -57,6 +59,30 @@ export class AdminRequestsController {
     res.setHeader('X-Export-Row-Count', String(result.rowCount));
 
     return result.csvContent;
+  }
+
+  @Get(':id/attachments/:attachmentId/download-url')
+  downloadAttachment(
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    return this.attachmentsService.getAdminDownloadUrl(id, attachmentId);
+  }
+
+  @Post(':id/attachments/presign')
+  presignAttachment(
+    @Param('id') id: string,
+    @Body() dto: CreateAttachmentUploadTicketDto,
+  ) {
+    return this.attachmentsService.issueAdminUploadTicket(id, dto);
+  }
+
+  @Post(':id/attachments/complete')
+  completeAttachment(
+    @Param('id') id: string,
+    @Body() dto: CompleteAttachmentUploadDto,
+  ) {
+    return this.attachmentsService.completeAdminUpload(id, dto);
   }
 
   @Get(':id')

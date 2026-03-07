@@ -8,7 +8,9 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { CompleteAttachmentUploadDto } from '../attachments/dto/complete-attachment-upload.dto';
 import { CreateAttachmentDto } from '../attachments/dto/create-attachment.dto';
+import { CreateAttachmentUploadTicketDto } from '../attachments/dto/create-attachment-upload-ticket.dto';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { EmployeeSession } from '../auth-otp/employee-session.decorator';
 import { EmployeeSessionGuard } from '../auth-otp/employee-session.guard';
@@ -46,6 +48,40 @@ export class RequestsController {
   @Post('document')
   createDocument(@Body() dto: CreateDocumentRequestDto) {
     return this.requestsService.createDocument(dto);
+  }
+
+  @UseGuards(EmployeeSessionGuard)
+  @Post(':id/attachments/presign')
+  presignAttachment(
+    @Param('id') id: string,
+    @Body() dto: CreateAttachmentUploadTicketDto,
+    @EmployeeSession() session: EmployeeSessionPrincipal,
+  ) {
+    return this.attachmentsService.issueEmployeeUploadTicket(id, session.phone, dto);
+  }
+
+  @UseGuards(EmployeeSessionGuard)
+  @Post(':id/attachments/complete')
+  completeAttachment(
+    @Param('id') id: string,
+    @Body() dto: CompleteAttachmentUploadDto,
+    @EmployeeSession() session: EmployeeSessionPrincipal,
+  ) {
+    return this.attachmentsService.completeEmployeeUpload(id, session.phone, dto);
+  }
+
+  @UseGuards(EmployeeSessionGuard)
+  @Get(':id/attachments/:attachmentId/download-url')
+  downloadAttachment(
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+    @EmployeeSession() session: EmployeeSessionPrincipal,
+  ) {
+    return this.attachmentsService.getEmployeeDownloadUrl(
+      id,
+      attachmentId,
+      session.phone,
+    );
   }
 
   @UseGuards(EmployeeSessionGuard)
