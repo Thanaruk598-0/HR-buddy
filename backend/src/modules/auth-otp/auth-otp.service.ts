@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { OtpDeliveryService } from './delivery/otp-delivery.service';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import {
@@ -15,20 +16,17 @@ import {
 
 @Injectable()
 export class AuthOtpService {
-  private readonly otpTtlMinutes = 5;
-  private readonly sessionTtlMinutes = 30;
-  private readonly maxAttempts = 5;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly otpDeliveryService: OtpDeliveryService,
   ) {}
 
   async sendOtp(dto: SendOtpDto) {
     const normalizedEmail = this.normalizeEmail(dto.email);
     const otpCode = generateOtpCode(6);
     const otpCodeHash = this.hash(otpCode);
-    const expiresAt = this.minutesFromNow(this.otpTtlMinutes);
+    const expiresAt = this.minutesFromNow(this.otpTtlMinutes());
 
     await this.prisma.otpSession.create({
       data: {
@@ -39,9 +37,16 @@ export class AuthOtpService {
       },
     });
 
+    await this.otpDeliveryService.getProvider().sendOtp({
+      phone: dto.phone,
+      email: normalizedEmail,
+      otpCode,
+      expiresAt,
+    });
+
     return {
       expiresAt,
-      ...(this.isDevMode() ? { devOtp: otpCode } : {}),
+      ...(this.shouldExposeDevOtp() ? { devOtp: otpCode } : {}),
     };
   }
 
@@ -73,7 +78,7 @@ export class AuthOtpService {
       });
     }
 
-    if (otpSession.attemptCount >= this.maxAttempts) {
+    if (otpSession.attemptCount >= this.maxAttempts()) {
       throw new BadRequestException({
         code: 'OTP_ATTEMPTS_EXCEEDED',
         message: 'Too many OTP attempts',
@@ -104,7 +109,7 @@ export class AuthOtpService {
 
     const sessionToken = generateSessionToken();
     const sessionTokenHash = this.hash(sessionToken);
-    const expiresAt = this.minutesFromNow(this.sessionTtlMinutes);
+    const expiresAt = this.minutesFromNow(this.sessionTtlMinutes());
 
     await this.prisma.employeeAccessSession.create({
       data: {
@@ -150,7 +155,19 @@ export class AuthOtpService {
     return new Date(Date.now() + minutes * 60_000);
   }
 
-  private isDevMode() {
-    return process.env.NODE_ENV !== 'production';
+  private otpTtlMinutes() {
+    return this.config.get<number>('otp.codeTtlMinutes') ?? 5;
+  }
+
+  private sessionTtlMinutes() {
+    return this.config.get<number>('otp.sessionTtlMinutes') ?? 30;
+  }
+
+  private maxAttempts() {
+    return this.config.get<number>('otp.maxAttempts') ?? 5;
+  }
+
+  private shouldExposeDevOtp() {
+    return process.env.NODE_ENV !== 'production' && this.otpDeliveryService.isConsoleProvider();
   }
 }

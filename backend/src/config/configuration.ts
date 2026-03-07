@@ -6,6 +6,15 @@ export default () => ({
     .filter(Boolean),
   otpHashSecret:
     process.env.OTP_HASH_SECRET ?? 'dev-only-change-this-otp-hash-secret',
+  otp: {
+    codeTtlMinutes: parseInt(process.env.OTP_CODE_TTL_MINUTES ?? '5', 10),
+    sessionTtlMinutes: parseInt(process.env.OTP_SESSION_TTL_MINUTES ?? '30', 10),
+    maxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS ?? '5', 10),
+    deliveryProvider: process.env.OTP_DELIVERY_PROVIDER ?? 'console',
+    webhookUrl: process.env.OTP_WEBHOOK_URL ?? null,
+    webhookApiKey: process.env.OTP_WEBHOOK_API_KEY ?? null,
+    webhookTimeoutMs: parseInt(process.env.OTP_WEBHOOK_TIMEOUT_MS ?? '5000', 10),
+  },
   messengerMagicLinkSecret:
     process.env.MESSENGER_MAGIC_LINK_SECRET ??
     'dev-only-change-this-messenger-magic-link-secret',

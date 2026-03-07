@@ -7,6 +7,17 @@ export const envValidationSchema = Joi.object({
   OTP_HASH_SECRET: Joi.string()
     .min(16)
     .default('dev-only-change-this-otp-hash-secret'),
+  OTP_CODE_TTL_MINUTES: Joi.number().integer().min(1).default(5),
+  OTP_SESSION_TTL_MINUTES: Joi.number().integer().min(1).default(30),
+  OTP_MAX_ATTEMPTS: Joi.number().integer().min(1).max(20).default(5),
+  OTP_DELIVERY_PROVIDER: Joi.string().valid('console', 'webhook').default('console'),
+  OTP_WEBHOOK_URL: Joi.when('OTP_DELIVERY_PROVIDER', {
+    is: 'webhook',
+    then: Joi.string().uri({ scheme: ['http', 'https'] }).required(),
+    otherwise: Joi.string().uri({ scheme: ['http', 'https'] }).optional(),
+  }),
+  OTP_WEBHOOK_API_KEY: Joi.string().allow('').optional(),
+  OTP_WEBHOOK_TIMEOUT_MS: Joi.number().integer().min(500).default(5000),
   MESSENGER_MAGIC_LINK_SECRET: Joi.string()
     .min(16)
     .default('dev-only-change-this-messenger-magic-link-secret'),
