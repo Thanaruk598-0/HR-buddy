@@ -66,4 +66,6 @@ Before shipping backend changes:
 - Optional preprod smoke in gate: set `RELEASE_GATE_INCLUDE_SMOKE=true` then rerun `npm.cmd run release:gate`
 - Migration impact reviewed
 - New env keys documented in `.env.example`
+- Error code changes documented in `docs/error-contract.md`
 - Runbook updated when operational behavior changes
+
