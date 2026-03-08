@@ -202,6 +202,16 @@ describe('HR Buddy API (e2e)', () => {
         activityLogs: 4,
       },
     })),
+    anonymizeRequestData: jest.fn(async (id: string) => ({
+      id,
+      requestNo: 'HRB-20260308-REQ1',
+      status: 'DONE',
+      masked: {
+        requestIdentity: true,
+        addressCount: 1,
+        employeeNotificationCount: 2,
+      },
+    })),
   };
 
   beforeAll(async () => {
@@ -388,5 +398,15 @@ describe('HR Buddy API (e2e)', () => {
       .expect((res) => {
         expect(res.body.deleted.activityLogs).toBe(4);
       });
+
+    await request(app.getHttpServer())
+      .post('/admin/maintenance/pdpa/requests/req-1/anonymize')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ operatorId: 'op-1', reason: 'Employee PDPA request' })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.masked.requestIdentity).toBe(true);
+      });
   });
 });
+

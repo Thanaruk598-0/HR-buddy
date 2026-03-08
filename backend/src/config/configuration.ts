@@ -67,6 +67,12 @@ export default () => ({
       10,
     ),
   },
+  pdpa: {
+    anonymizeMinClosedDays: parseInt(
+      process.env.PDPA_ANONYMIZE_MIN_CLOSED_DAYS ?? '30',
+      10,
+    ),
+  },
   messengerMagicLinkSecret:
     process.env.MESSENGER_MAGIC_LINK_SECRET ??
     'dev-only-change-this-messenger-magic-link-secret',

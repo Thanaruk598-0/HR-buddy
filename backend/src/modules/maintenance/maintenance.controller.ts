@@ -1,5 +1,6 @@
-import { Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
 import { AdminSessionGuard } from '../admin-auth/admin-session.guard';
+import { AnonymizeRequestDto } from './dto/anonymize-request.dto';
 import { MaintenanceService } from './maintenance.service';
 
 @Controller('admin/maintenance')
@@ -10,5 +11,10 @@ export class MaintenanceController {
   @Post('retention/run')
   runRetentionNow() {
     return this.maintenanceService.runRetentionJob('manual');
+  }
+
+  @Post('pdpa/requests/:id/anonymize')
+  anonymizeRequest(@Param('id') id: string, @Body() dto: AnonymizeRequestDto) {
+    return this.maintenanceService.anonymizeRequestData(id, dto);
   }
 }

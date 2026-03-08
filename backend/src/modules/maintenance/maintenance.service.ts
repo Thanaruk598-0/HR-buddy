@@ -1,11 +1,23 @@
 import {
+  BadRequestException,
   Injectable,
   Logger,
+  NotFoundException,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
+import {
+  ActivityAction,
+  ActorRole,
+  RecipientRole,
+} from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AnonymizeRequestDto } from './dto/anonymize-request.dto';
+import {
+  assertAnonymizeEligibility,
+  normalizeAnonymizeReason,
+} from './rules/pdpa-anonymize.rules';
 import { cutoffFromDays } from './utils/retention.util';
 
 type RetentionMode = 'manual' | 'auto';
@@ -142,6 +154,137 @@ export class MaintenanceService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async anonymizeRequestData(id: string, dto: AnonymizeRequestDto) {
+    return this.prisma.$transaction(async (tx) => {
+      const request = await tx.request.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          requestNo: true,
+          status: true,
+          closedAt: true,
+          messengerBookingDetail: {
+            select: {
+              senderAddressId: true,
+              receiverAddressId: true,
+            },
+          },
+          documentRequestDetail: {
+            select: {
+              deliveryAddressId: true,
+            },
+          },
+        },
+      });
+
+      if (!request) {
+        throw new NotFoundException({
+          code: 'NOT_FOUND',
+          message: 'Request not found',
+        });
+      }
+
+      const operator = await tx.operator.findUnique({
+        where: { id: dto.operatorId },
+        select: {
+          id: true,
+          isActive: true,
+        },
+      });
+
+      if (!operator) {
+        throw new BadRequestException({
+          code: 'INVALID_OPERATOR_ID',
+          message: 'Invalid operatorId',
+        });
+      }
+
+      if (!operator.isActive) {
+        throw new BadRequestException({
+          code: 'OPERATOR_INACTIVE',
+          message: 'operatorId is inactive',
+        });
+      }
+
+      assertAnonymizeEligibility({
+        status: request.status,
+        closedAt: request.closedAt,
+        minClosedDays: this.pdpaAnonymizeMinClosedDays(),
+      });
+
+      const now = new Date();
+      const normalizedReason = normalizeAnonymizeReason(dto.reason);
+
+      const addressIds = [
+        request.messengerBookingDetail?.senderAddressId,
+        request.messengerBookingDetail?.receiverAddressId,
+        request.documentRequestDetail?.deliveryAddressId,
+      ].filter((value, index, self): value is string => {
+        return Boolean(value) && self.indexOf(value) === index;
+      });
+
+      await tx.request.update({
+        where: { id },
+        data: {
+          employeeName: 'REDACTED',
+          phone: 'REDACTED',
+          cancelReason: null,
+          hrCloseNote: null,
+          latestActivityAt: now,
+        },
+      });
+
+      const maskedAddressResult =
+        addressIds.length > 0
+          ? await tx.address.updateMany({
+              where: { id: { in: addressIds } },
+              data: {
+                name: 'REDACTED',
+                phone: 'REDACTED',
+                houseNo: 'REDACTED',
+                soi: null,
+                road: null,
+                extra: null,
+              },
+            })
+          : { count: 0 };
+
+      const maskedNotificationResult = await tx.notification.updateMany({
+        where: {
+          requestId: id,
+          recipientRole: RecipientRole.EMPLOYEE,
+        },
+        data: {
+          recipientPhone: null,
+        },
+      });
+
+      await tx.requestActivityLog.create({
+        data: {
+          requestId: id,
+          action: ActivityAction.STATUS_CHANGE,
+          fromStatus: request.status,
+          toStatus: request.status,
+          actorRole: ActorRole.ADMIN,
+          operatorId: dto.operatorId,
+          note: `PDPA_ANONYMIZED: ${normalizedReason}`,
+        },
+      });
+
+      return {
+        id: request.id,
+        requestNo: request.requestNo,
+        status: request.status,
+        anonymizedAt: now,
+        masked: {
+          requestIdentity: true,
+          addressCount: maskedAddressResult.count,
+          employeeNotificationCount: maskedNotificationResult.count,
+        },
+      };
+    });
+  }
+
   private retentionEnabled() {
     return this.config.get<boolean>('retention.enabled') ?? false;
   }
@@ -169,4 +312,9 @@ export class MaintenanceService implements OnModuleInit, OnModuleDestroy {
   private retentionActivityLogsDays() {
     return this.config.get<number>('retention.activityLogsDays') ?? 365;
   }
+
+  private pdpaAnonymizeMinClosedDays() {
+    return this.config.get<number>('pdpa.anonymizeMinClosedDays') ?? 30;
+  }
 }
+

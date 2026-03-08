@@ -47,6 +47,7 @@ export const envValidationSchema = Joi.object({
   RETENTION_EMPLOYEE_SESSIONS_DAYS: Joi.number().integer().min(1).default(7),
   RETENTION_NOTIFICATIONS_DAYS: Joi.number().integer().min(1).default(180),
   RETENTION_ACTIVITY_LOGS_DAYS: Joi.number().integer().min(1).default(365),
+  PDPA_ANONYMIZE_MIN_CLOSED_DAYS: Joi.number().integer().min(0).default(30),
 
   MESSENGER_MAGIC_LINK_SECRET: Joi.string()
     .min(16)
@@ -62,3 +63,4 @@ export const envValidationSchema = Joi.object({
     .default('dev-only-change-this-admin-session-secret'),
   ADMIN_SESSION_TTL_MINUTES: Joi.number().integer().min(30).default(480),
 });
+
