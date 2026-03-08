@@ -100,6 +100,7 @@ npx ts-node scripts/seed-dev.ts
 - [Operations Checklist](./docs/operations-checklist.md)
 - [Error Contract](./docs/error-contract.md)
 - [Backend v1 Freeze Checklist](./docs/backend-v1-freeze-checklist.md)
+- [Backend Project Structure](./docs/backend-project-structure.md)
 - [Backend Release Notes v1 RC1 (2026-03-09)](./docs/release-notes-backend-v1-rc1-2026-03-09.md)
 
 ## Health Endpoints

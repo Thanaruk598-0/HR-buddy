@@ -4,7 +4,7 @@
 
 - Candidate: `backend-v1-rc1`
 - Date: 2026-03-09
-- Baseline commit: `7be53a3`
+- Baseline commit: `0b34a95`
 
 ## Scope Included
 
@@ -44,6 +44,8 @@
 - Legacy unused SLA module removed from runtime
 - Backend error contract document added
 - Security baseline hardening (headers + CORS config guard)
+- Post-RC1 structural cleanup: move geo module to `src/modules/geo` (commit `5a46754`)
+
 
 ## Operational Notes
 
