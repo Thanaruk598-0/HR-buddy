@@ -152,3 +152,12 @@ npx ts-node scripts/seed-dev.ts
 
 - OTP webhook payload is email-first; phone is not sent by default.
 - Set `OTP_WEBHOOK_INCLUDE_PHONE=true` only if your provider strictly requires phone.
+
+## Production Startup Guard
+
+- On `NODE_ENV=production`, backend validates critical runtime config before listening.
+- Startup fails if insecure defaults are detected (for example default secrets or default admin password).
+- Additional production rules:
+- `OTP_DELIVERY_PROVIDER` must not be `console`
+- when `OTP_DELIVERY_PROVIDER=webhook`, `OTP_WEBHOOK_SIGNING_SECRET` is required
+- when `ATTACHMENT_STORAGE_PROVIDER=webhook`, `ATTACHMENT_STORAGE_WEBHOOK_SIGNING_SECRET` is required
