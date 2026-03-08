@@ -33,13 +33,7 @@ export class OtpWebhookDeliveryProvider implements OtpDeliveryProvider {
     const retryDelayMs =
       this.config.get<number>('otp.webhookRetryDelayMs') ?? 200;
 
-    const requestBody = {
-      channel: 'email',
-      phone: payload.phone,
-      email: payload.email,
-      otpCode: payload.otpCode,
-      expiresAt: payload.expiresAt.toISOString(),
-    };
+    const requestBody = this.buildRequestBody(payload);
 
     const body = JSON.stringify(requestBody);
 
@@ -112,6 +106,18 @@ export class OtpWebhookDeliveryProvider implements OtpDeliveryProvider {
     });
   }
 
+  private buildRequestBody(payload: OtpDeliveryPayload) {
+    const includePhone =
+      this.config.get<boolean>('otp.webhookIncludePhone') ?? false;
+
+    return {
+      channel: 'email' as const,
+      ...(includePhone ? { phone: payload.phone } : {}),
+      email: payload.email,
+      otpCode: payload.otpCode,
+      expiresAt: payload.expiresAt.toISOString(),
+    };
+  }
   private isRetryableStatus(statusCode: number) {
     return statusCode === 429 || statusCode >= 500;
   }

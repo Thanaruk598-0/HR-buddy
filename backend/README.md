@@ -147,3 +147,8 @@ npx ts-node scripts/seed-dev.ts
 
 - Request numbers use a PostgreSQL-backed daily sequence (`HRB-YYYYMMDD-####`).
 - This avoids collisions across concurrent requests and multiple backend instances.
+
+## OTP Delivery (Email-Only)
+
+- OTP webhook payload is email-first; phone is not sent by default.
+- Set `OTP_WEBHOOK_INCLUDE_PHONE=true` only if your provider strictly requires phone.

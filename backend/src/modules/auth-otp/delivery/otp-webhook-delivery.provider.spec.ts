@@ -59,6 +59,47 @@ describe('OtpWebhookDeliveryProvider', () => {
     expect(headers['x-hrbuddy-webhook-timestamp']).toBeDefined();
     expect(headers['x-hrbuddy-webhook-signature']).toMatch(/^v1=[a-f0-9]{64}$/);
   });
+  it('does not send phone by default for email-only delivery', async () => {
+    const fetchMock = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValueOnce({ ok: true, status: 200 } as Response);
+
+    await provider.sendOtp(payload);
+
+    const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(requestInit.body)) as Record<
+      string,
+      unknown
+    >;
+
+    expect(body.channel).toBe('email');
+    expect(body.email).toBe(payload.email);
+    expect(body.phone).toBeUndefined();
+  });
+
+  it('includes phone when explicitly enabled', async () => {
+    (config.get as jest.Mock).mockImplementation((key: string) => {
+      if (key === 'otp.webhookIncludePhone') {
+        return true;
+      }
+
+      return configValues[key];
+    });
+
+    const fetchMock = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValueOnce({ ok: true, status: 200 } as Response);
+
+    await provider.sendOtp(payload);
+
+    const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(requestInit.body)) as Record<
+      string,
+      unknown
+    >;
+
+    expect(body.phone).toBe(payload.phone);
+  });
 
   it('omits webhook signature headers when signing secret is missing', async () => {
     (config.get as jest.Mock).mockImplementation((key: string) => {

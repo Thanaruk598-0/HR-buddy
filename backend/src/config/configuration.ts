@@ -22,6 +22,7 @@ export default () => ({
     webhookUrl: process.env.OTP_WEBHOOK_URL ?? null,
     webhookApiKey: process.env.OTP_WEBHOOK_API_KEY ?? null,
     webhookSigningSecret: process.env.OTP_WEBHOOK_SIGNING_SECRET || null,
+    webhookIncludePhone: process.env.OTP_WEBHOOK_INCLUDE_PHONE === 'true',
     webhookTimeoutMs: parseInt(
       process.env.OTP_WEBHOOK_TIMEOUT_MS ?? '5000',
       10,
