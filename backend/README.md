@@ -98,6 +98,8 @@ npx ts-node scripts/seed-dev.ts
 - [Deploy Runbook](./docs/deploy-runbook.md)
 - [Operations Checklist](./docs/operations-checklist.md)
 - [Error Contract](./docs/error-contract.md)
+- [Backend v1 Freeze Checklist](./docs/backend-v1-freeze-checklist.md)
+- [Backend Release Notes v1 RC1 (2026-03-09)](./docs/release-notes-backend-v1-rc1-2026-03-09.md)
 
 ## Health Endpoints
 
@@ -197,5 +199,6 @@ npx ts-node scripts/seed-dev.ts
 - Geo lookups are indexed in-memory at startup for faster read responses.
 - Province/District/Subdistrict queries are whitespace-tolerant and case-insensitive in lookup logic.
 - Dataset path can be overridden with `GEO_DATASET_PATH` for production deployments (for example when running from `dist`).
+
 
 
