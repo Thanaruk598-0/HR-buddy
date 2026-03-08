@@ -20,6 +20,8 @@ export const envValidationSchema = Joi.object({
   }),
   OTP_WEBHOOK_API_KEY: Joi.string().allow('').optional(),
   OTP_WEBHOOK_TIMEOUT_MS: Joi.number().integer().min(500).default(5000),
+  OTP_WEBHOOK_MAX_RETRIES: Joi.number().integer().min(0).max(10).default(2),
+  OTP_WEBHOOK_RETRY_DELAY_MS: Joi.number().integer().min(0).default(200),
 
   REQUEST_DEDUPE_WINDOW_SECONDS: Joi.number().integer().min(0).default(30),
 
@@ -39,6 +41,15 @@ export const envValidationSchema = Joi.object({
   }),
   ATTACHMENT_STORAGE_WEBHOOK_API_KEY: Joi.string().allow('').optional(),
   ATTACHMENT_STORAGE_WEBHOOK_TIMEOUT_MS: Joi.number().integer().min(500).default(5000),
+  ATTACHMENT_STORAGE_WEBHOOK_MAX_RETRIES: Joi.number()
+    .integer()
+    .min(0)
+    .max(10)
+    .default(2),
+  ATTACHMENT_STORAGE_WEBHOOK_RETRY_DELAY_MS: Joi.number()
+    .integer()
+    .min(0)
+    .default(200),
 
   RETENTION_ENABLED: Joi.boolean().default(false),
   RETENTION_RUN_ON_STARTUP: Joi.boolean().default(false),
@@ -63,4 +74,5 @@ export const envValidationSchema = Joi.object({
     .default('dev-only-change-this-admin-session-secret'),
   ADMIN_SESSION_TTL_MINUTES: Joi.number().integer().min(30).default(480),
 });
+
 

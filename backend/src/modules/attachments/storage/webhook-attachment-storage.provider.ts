@@ -1,4 +1,8 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   AttachmentDownloadPresign,
@@ -17,6 +21,8 @@ type WebhookResponse = {
 export class WebhookAttachmentStorageProvider
   implements AttachmentStorageProvider
 {
+  private readonly logger = new Logger(WebhookAttachmentStorageProvider.name);
+
   constructor(private readonly config: ConfigService) {}
 
   async createUploadPresign(params: {
@@ -61,7 +67,9 @@ export class WebhookAttachmentStorageProvider
     };
   }
 
-  private async callWebhook(payload: Record<string, unknown>): Promise<Required<Pick<WebhookResponse, 'url'>> & WebhookResponse> {
+  private async callWebhook(
+    payload: Record<string, unknown>,
+  ): Promise<Required<Pick<WebhookResponse, 'url'>> & WebhookResponse> {
     const url = this.config.get<string>('attachments.storage.webhookUrl');
 
     if (!url) {
@@ -74,50 +82,100 @@ export class WebhookAttachmentStorageProvider
     const timeoutMs =
       this.config.get<number>('attachments.storage.webhookTimeoutMs') ?? 5000;
     const apiKey = this.config.get<string>('attachments.storage.webhookApiKey');
+    const maxRetries =
+      this.config.get<number>('attachments.storage.webhookMaxRetries') ?? 2;
+    const retryDelayMs =
+      this.config.get<number>('attachments.storage.webhookRetryDelayMs') ?? 200;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      const attemptNumber = attempt + 1;
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-      if (!response.ok) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const shouldRetry =
+            this.isRetryableStatus(response.status) && attempt < maxRetries;
+
+          if (shouldRetry) {
+            this.logger.warn(
+              `Attachment storage webhook failed with status ${response.status}; retrying attempt ${attemptNumber}/${maxRetries + 1}`,
+            );
+
+            await this.wait(retryDelayMs * attemptNumber);
+            continue;
+          }
+
+          throw new ServiceUnavailableException({
+            code: 'ATTACHMENT_STORAGE_WEBHOOK_FAILED',
+            message:
+              'Attachment storage webhook returned a non-success response',
+            statusCode: response.status,
+          });
+        }
+
+        const data = (await response.json()) as WebhookResponse;
+
+        if (!data?.url || typeof data.url !== 'string') {
+          throw new ServiceUnavailableException({
+            code: 'ATTACHMENT_STORAGE_WEBHOOK_INVALID_RESPONSE',
+            message: 'Attachment storage webhook response is invalid',
+          });
+        }
+
+        return data as Required<Pick<WebhookResponse, 'url'>> & WebhookResponse;
+      } catch (error) {
+        if (error instanceof ServiceUnavailableException) {
+          throw error;
+        }
+
+        const isLastAttempt = attempt >= maxRetries;
+
+        if (!isLastAttempt) {
+          this.logger.warn(
+            `Attachment storage webhook call failed; retrying attempt ${attemptNumber}/${maxRetries + 1}`,
+          );
+          await this.wait(retryDelayMs * attemptNumber);
+          continue;
+        }
+
         throw new ServiceUnavailableException({
           code: 'ATTACHMENT_STORAGE_WEBHOOK_FAILED',
-          message: 'Attachment storage webhook returned a non-success response',
-          statusCode: response.status,
+          message: 'Failed to call attachment storage webhook',
         });
+      } finally {
+        clearTimeout(timeout);
       }
-
-      const data = (await response.json()) as WebhookResponse;
-
-      if (!data?.url || typeof data.url !== 'string') {
-        throw new ServiceUnavailableException({
-          code: 'ATTACHMENT_STORAGE_WEBHOOK_INVALID_RESPONSE',
-          message: 'Attachment storage webhook response is invalid',
-        });
-      }
-
-      return data as Required<Pick<WebhookResponse, 'url'>> & WebhookResponse;
-    } catch (error) {
-      if (error instanceof ServiceUnavailableException) {
-        throw error;
-      }
-
-      throw new ServiceUnavailableException({
-        code: 'ATTACHMENT_STORAGE_WEBHOOK_FAILED',
-        message: 'Failed to call attachment storage webhook',
-      });
-    } finally {
-      clearTimeout(timeout);
     }
+
+    throw new ServiceUnavailableException({
+      code: 'ATTACHMENT_STORAGE_WEBHOOK_FAILED',
+      message: 'Failed to call attachment storage webhook',
+    });
+  }
+
+  private isRetryableStatus(statusCode: number) {
+    return statusCode === 429 || statusCode >= 500;
+  }
+
+  private async wait(ms: number) {
+    if (ms <= 0) {
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, ms);
+    });
   }
 }

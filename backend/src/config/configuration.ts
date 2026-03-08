@@ -19,6 +19,11 @@ export default () => ({
     webhookUrl: process.env.OTP_WEBHOOK_URL ?? null,
     webhookApiKey: process.env.OTP_WEBHOOK_API_KEY ?? null,
     webhookTimeoutMs: parseInt(process.env.OTP_WEBHOOK_TIMEOUT_MS ?? '5000', 10),
+    webhookMaxRetries: parseInt(process.env.OTP_WEBHOOK_MAX_RETRIES ?? '2', 10),
+    webhookRetryDelayMs: parseInt(
+      process.env.OTP_WEBHOOK_RETRY_DELAY_MS ?? '200',
+      10,
+    ),
   },
   requestDedupeWindowSeconds: parseInt(
     process.env.REQUEST_DEDUPE_WINDOW_SECONDS ?? '30',
@@ -45,6 +50,14 @@ export default () => ({
       webhookApiKey: process.env.ATTACHMENT_STORAGE_WEBHOOK_API_KEY ?? null,
       webhookTimeoutMs: parseInt(
         process.env.ATTACHMENT_STORAGE_WEBHOOK_TIMEOUT_MS ?? '5000',
+        10,
+      ),
+      webhookMaxRetries: parseInt(
+        process.env.ATTACHMENT_STORAGE_WEBHOOK_MAX_RETRIES ?? '2',
+        10,
+      ),
+      webhookRetryDelayMs: parseInt(
+        process.env.ATTACHMENT_STORAGE_WEBHOOK_RETRY_DELAY_MS ?? '200',
         10,
       ),
     },
@@ -92,3 +105,4 @@ export default () => ({
     sessionTtlMinutes: parseInt(process.env.ADMIN_SESSION_TTL_MINUTES ?? '480', 10),
   },
 });
+
