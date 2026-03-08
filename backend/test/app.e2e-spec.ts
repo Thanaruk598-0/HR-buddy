@@ -247,11 +247,24 @@ describe('HR Buddy API (e2e)', () => {
     await app.close();
   });
 
-  it('GET /health returns ok', async () => {
+  it('GET /health returns ok and sets request id header', async () => {
     await request(app.getHttpServer())
       .get('/health')
       .expect(200)
-      .expect({ ok: true });
+      .expect((res) => {
+        expect(res.body).toEqual({ ok: true });
+        expect(res.headers['x-request-id']).toBeDefined();
+      });
+  });
+
+  it('reuses incoming x-request-id when provided', async () => {
+    await request(app.getHttpServer())
+      .get('/health')
+      .set('x-request-id', 'client-trace-001')
+      .expect(200)
+      .expect((res) => {
+        expect(res.headers['x-request-id']).toBe('client-trace-001');
+      });
   });
 
   it('POST /auth-otp/send returns otp session payload', async () => {
@@ -409,4 +422,3 @@ describe('HR Buddy API (e2e)', () => {
       });
   });
 });
-

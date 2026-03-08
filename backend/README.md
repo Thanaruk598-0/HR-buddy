@@ -90,3 +90,10 @@ npx ts-node scripts/seed-dev.ts
 
 - `GET /health`
 - `GET /health/db`
+
+## Observability Baseline
+
+- Every response includes x-request-id for request correlation.
+- If client sends x-request-id, backend reuses that value.
+- Access and error logs are emitted as structured JSON events (http_request, http_exception).
+
