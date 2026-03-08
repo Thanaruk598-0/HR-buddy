@@ -1,4 +1,8 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
@@ -308,6 +312,14 @@ describe('HR Buddy API (e2e)', () => {
   afterAll(async () => {
     await app.close();
   });
+  const loginAsAdmin = async () => {
+    const response = await request(app.getHttpServer())
+      .post('/admin/auth/login')
+      .send({ username: 'admin', password: 'admin12345' })
+      .expect(201);
+
+    return response.body.sessionToken as string;
+  };
 
   it('GET /health returns ok and sets request id header', async () => {
     await request(app.getHttpServer())
@@ -468,6 +480,61 @@ describe('HR Buddy API (e2e)', () => {
         expect(res.body.id).toBe('req-1');
       });
   });
+
+  it('PATCH /admin/requests/:id/status validates required operatorId', async () => {
+    const adminToken = await loginAsAdmin();
+
+    await request(app.getHttpServer())
+      .patch('/admin/requests/req-1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'DONE' })
+      .expect(400);
+  });
+
+  it('PATCH /admin/requests/:id/status updates status with valid payload', async () => {
+    const adminToken = await loginAsAdmin();
+
+    await request(app.getHttpServer())
+      .patch('/admin/requests/req-1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'DONE', operatorId: 'op-1', note: 'Completed' })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toMatchObject({ id: 'req-1', status: 'DONE' });
+      });
+
+    expect(adminRequestsServiceMock.updateStatus).toHaveBeenCalledWith(
+      'req-1',
+      expect.objectContaining({
+        status: 'DONE',
+        operatorId: 'op-1',
+        note: 'Completed',
+      }),
+    );
+  });
+
+  it('PATCH /admin/requests/:id/status returns service business error code', async () => {
+    adminRequestsServiceMock.updateStatus.mockRejectedValueOnce(
+      new BadRequestException({
+        code: 'DIGITAL_FILE_REQUIRED_BEFORE_DONE',
+        message:
+          'digitalFileAttachmentId is required before DONE when deliveryMethod is DIGITAL',
+      }),
+    );
+
+    const adminToken = await loginAsAdmin();
+
+    await request(app.getHttpServer())
+      .patch('/admin/requests/req-1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'DONE', operatorId: 'op-1' })
+      .expect(400)
+      .expect((res) => {
+        expect(res.body).toMatchObject({
+          code: 'DIGITAL_FILE_REQUIRED_BEFORE_DONE',
+        });
+      });
+  });
   it('admin protected routes reject when session token is missing', async () => {
     await request(app.getHttpServer())
       .post('/admin/settings/departments')
@@ -476,12 +543,7 @@ describe('HR Buddy API (e2e)', () => {
   });
 
   it('admin can login and access protected routes', async () => {
-    const loginResponse = await request(app.getHttpServer())
-      .post('/admin/auth/login')
-      .send({ username: 'admin', password: 'admin12345' })
-      .expect(201);
-
-    const adminToken = loginResponse.body.sessionToken as string;
+    const adminToken = await loginAsAdmin();
 
     await request(app.getHttpServer())
       .get('/admin/auth/me')
