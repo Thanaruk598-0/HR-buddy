@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
 import { validateProductionConfig } from '../config/runtime-config.guard';
+import { PrismaService } from '../prisma/prisma.service';
 
 export type ReadinessCheck = {
   name: string;
@@ -61,8 +61,18 @@ export class ReadinessService {
   private checkOtpProvider(): ReadinessCheck {
     const provider =
       this.config.get<string>('otp.deliveryProvider') ?? 'console';
+    const strictProviders = this.strictProvidersEnabled();
 
     if (provider !== 'webhook') {
+      if (strictProviders) {
+        return {
+          name: 'otp-provider',
+          ok: false,
+          message:
+            'READINESS_STRICT_PROVIDERS=true requires OTP_DELIVERY_PROVIDER=webhook',
+        };
+      }
+
       return {
         name: 'otp-provider',
         ok: true,
@@ -91,8 +101,18 @@ export class ReadinessService {
   private checkAttachmentProvider(): ReadinessCheck {
     const provider =
       this.config.get<string>('attachments.storage.provider') ?? 'local';
+    const strictProviders = this.strictProvidersEnabled();
 
     if (provider !== 'webhook') {
+      if (strictProviders) {
+        return {
+          name: 'attachment-storage-provider',
+          ok: false,
+          message:
+            'READINESS_STRICT_PROVIDERS=true requires ATTACHMENT_STORAGE_PROVIDER=webhook',
+        };
+      }
+
       return {
         name: 'attachment-storage-provider',
         ok: true,
@@ -144,5 +164,9 @@ export class ReadinessService {
       ok: false,
       message: errors.join('; '),
     };
+  }
+
+  private strictProvidersEnabled() {
+    return this.config.get<boolean>('readiness.strictProviders') ?? false;
   }
 }

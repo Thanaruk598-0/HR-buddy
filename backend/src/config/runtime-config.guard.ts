@@ -101,6 +101,23 @@ export function validateProductionConfig(
     }
   }
 
+  const strictProviders =
+    config.get<boolean>('readiness.strictProviders') ?? false;
+
+  if (strictProviders) {
+    if (otpProvider !== 'webhook') {
+      errors.push(
+        'READINESS_STRICT_PROVIDERS=true requires OTP_DELIVERY_PROVIDER=webhook',
+      );
+    }
+
+    if (attachmentProvider !== 'webhook') {
+      errors.push(
+        'READINESS_STRICT_PROVIDERS=true requires ATTACHMENT_STORAGE_PROVIDER=webhook',
+      );
+    }
+  }
+
   return { errors };
 }
 

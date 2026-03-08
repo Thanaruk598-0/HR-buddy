@@ -163,6 +163,9 @@ npx ts-node scripts/seed-dev.ts
 - `OTP_DELIVERY_PROVIDER` must not be `console`
 - when `OTP_DELIVERY_PROVIDER=webhook`, `OTP_WEBHOOK_SIGNING_SECRET` is required
 - when `ATTACHMENT_STORAGE_PROVIDER=webhook`, `ATTACHMENT_STORAGE_WEBHOOK_SIGNING_SECRET` is required
+- if `READINESS_STRICT_PROVIDERS=true`, startup also requires:
+- `OTP_DELIVERY_PROVIDER=webhook`
+- `ATTACHMENT_STORAGE_PROVIDER=webhook`
 
 ## Request Create Concurrency
 

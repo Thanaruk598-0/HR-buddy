@@ -5,6 +5,7 @@ export const envValidationSchema = Joi.object({
   DATABASE_URL: Joi.string().required(),
   CORS_ORIGINS: Joi.string().default('http://localhost:3000'),
   GEO_DATASET_PATH: Joi.string().allow('').optional(),
+  READINESS_STRICT_PROVIDERS: Joi.boolean().default(false),
   OTP_HASH_SECRET: Joi.string()
     .min(16)
     .default('dev-only-change-this-otp-hash-secret'),
@@ -159,4 +160,3 @@ export const envValidationSchema = Joi.object({
     .default('dev-only-change-this-admin-session-secret'),
   ADMIN_SESSION_TTL_MINUTES: Joi.number().integer().min(30).default(480),
 });
-

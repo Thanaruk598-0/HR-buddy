@@ -16,6 +16,7 @@ describe('runtime-config guard', () => {
     'attachments.storage.provider': 'webhook',
     'attachments.storage.webhookSigningSecret':
       'attachment-webhook-signing-secret-123456',
+    'readiness.strictProviders': false,
   };
 
   const makeConfig = (overrides?: Record<string, unknown>) => {
@@ -52,6 +53,23 @@ describe('runtime-config guard', () => {
     );
   });
 
+  it('returns validation errors when strict providers mode is enabled but providers are not webhook', () => {
+    const result = validateProductionConfig(
+      makeConfig({
+        'readiness.strictProviders': true,
+        'otp.deliveryProvider': 'console',
+        'attachments.storage.provider': 'local',
+      }),
+    );
+
+    expect(result.errors).toContain(
+      'READINESS_STRICT_PROVIDERS=true requires OTP_DELIVERY_PROVIDER=webhook',
+    );
+    expect(result.errors).toContain(
+      'READINESS_STRICT_PROVIDERS=true requires ATTACHMENT_STORAGE_PROVIDER=webhook',
+    );
+  });
+
   it('does not throw outside production', () => {
     process.env.NODE_ENV = 'development';
 
@@ -85,5 +103,19 @@ describe('runtime-config guard', () => {
     process.env.NODE_ENV = 'production';
 
     expect(() => assertRuntimeConfig(makeConfig())).not.toThrow();
+  });
+
+  it('passes in production strict mode when providers are webhook', () => {
+    process.env.NODE_ENV = 'production';
+
+    expect(() =>
+      assertRuntimeConfig(
+        makeConfig({
+          'readiness.strictProviders': true,
+          'otp.deliveryProvider': 'webhook',
+          'attachments.storage.provider': 'webhook',
+        }),
+      ),
+    ).not.toThrow();
   });
 });

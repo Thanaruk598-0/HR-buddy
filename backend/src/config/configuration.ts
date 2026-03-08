@@ -7,6 +7,9 @@ export default () => ({
   geo: {
     datasetPath: process.env.GEO_DATASET_PATH ?? null,
   },
+  readiness: {
+    strictProviders: process.env.READINESS_STRICT_PROVIDERS === 'true',
+  },
   otpHashSecret:
     process.env.OTP_HASH_SECRET ?? 'dev-only-change-this-otp-hash-secret',
   otp: {
@@ -207,4 +210,3 @@ export default () => ({
     ),
   },
 });
-

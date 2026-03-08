@@ -5,6 +5,7 @@ This runbook is for deploying the HR-Buddy backend service to a production-like 
 ## 1) Scope and Current Feature Set
 
 The current backend scope includes:
+
 - Employee request creation and self-service tracking via OTP session
 - Admin authentication and request operation flows
 - Messenger magic-link status update flow
@@ -34,6 +35,7 @@ Copy-Item .env.example .env
 ```
 
 2. Update required values in `.env` at minimum:
+
 - `DATABASE_URL`
 - `OTP_HASH_SECRET`
 - `ATTACHMENT_UPLOAD_TICKET_SECRET`
@@ -42,8 +44,13 @@ Copy-Item .env.example .env
 - `ADMIN_PASSWORD`
 
 3. If using webhook providers, set:
+
 - `OTP_DELIVERY_PROVIDER=webhook` + `OTP_WEBHOOK_URL`
 - `ATTACHMENT_STORAGE_PROVIDER=webhook` + `ATTACHMENT_STORAGE_WEBHOOK_URL`
+
+4. For pre-prod/production readiness gate, enable strict provider mode:
+
+- `READINESS_STRICT_PROVIDERS=true`
 
 ## 4) Install and Build
 
@@ -85,42 +92,55 @@ npm.cmd run start:dev
 Run these checks after startup:
 
 1. Health endpoint:
+
 ```http
 GET /health
 ```
+
 Expected: `ok: true`
 
 2. Readiness endpoint:
+
 ```http
 GET /health/ready
 ```
+
 Expected: `ok: true` and all checks healthy
 
 3. Database health endpoint:
+
 ```http
 GET /health/db
 ```
+
 Expected: `ok: true`
 
 4. Admin login:
+
 ```http
 POST /admin/auth/login
 ```
+
 Expected: 200 and admin session token
 
 5. Employee OTP send (non-production console provider):
+
 ```http
 POST /auth-otp/send
 ```
+
 Expected: 200 with OTP message accepted
 
 6. Admin export endpoint:
+
 ```http
 GET /admin/requests/export/csv
 ```
+
 Expected: 200 with `text/csv`
 
 Optional one-command smoke check:
+
 ```powershell
 $env:SMOKE_BASE_URL="http://localhost:3001"
 $env:SMOKE_ADMIN_USERNAME="admin"
@@ -152,6 +172,7 @@ If a release fails:
 ## 10) Release Evidence
 
 Capture and store:
+
 - Commit hash deployed
 - Environment target (staging/production)
 - Migration version applied
