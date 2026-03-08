@@ -155,6 +155,8 @@ export default () => ({
     enabled: process.env.RETENTION_ENABLED === 'true',
     runOnStartup: process.env.RETENTION_RUN_ON_STARTUP === 'true',
     intervalHours: parseInt(process.env.RETENTION_INTERVAL_HOURS ?? '24', 10),
+    useDbLock: process.env.RETENTION_USE_DB_LOCK !== 'false',
+    dbLockKey: parseInt(process.env.RETENTION_DB_LOCK_KEY ?? '48151623', 10),
     otpSessionsDays: parseInt(
       process.env.RETENTION_OTP_SESSIONS_DAYS ?? '7',
       10,

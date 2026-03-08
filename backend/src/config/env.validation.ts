@@ -134,6 +134,8 @@ export const envValidationSchema = Joi.object({
   RETENTION_ENABLED: Joi.boolean().default(false),
   RETENTION_RUN_ON_STARTUP: Joi.boolean().default(false),
   RETENTION_INTERVAL_HOURS: Joi.number().integer().min(1).default(24),
+  RETENTION_USE_DB_LOCK: Joi.boolean().default(true),
+  RETENTION_DB_LOCK_KEY: Joi.number().integer().min(1).default(48151623),
   RETENTION_OTP_SESSIONS_DAYS: Joi.number().integer().min(1).default(7),
   RETENTION_EMPLOYEE_SESSIONS_DAYS: Joi.number().integer().min(1).default(7),
   RETENTION_NOTIFICATIONS_DAYS: Joi.number().integer().min(1).default(180),

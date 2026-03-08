@@ -110,8 +110,25 @@ export class MaintenanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.isRunning = true;
+    let lockAcquired = false;
 
     try {
+      lockAcquired = await this.tryAcquireRetentionLock();
+
+      if (!lockAcquired) {
+        return {
+          mode,
+          executedAt: new Date(),
+          skipped: true,
+          deleted: {
+            otpSessions: 0,
+            employeeSessions: 0,
+            notifications: 0,
+            activityLogs: 0,
+          },
+        };
+      }
+
       const now = new Date();
 
       const otpCutoff = cutoffFromDays(this.retentionOtpSessionsDays(), now);
@@ -175,6 +192,10 @@ export class MaintenanceService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(`Retention run failed (${mode})`, error as Error);
       throw error;
     } finally {
+      if (lockAcquired) {
+        await this.releaseRetentionLock();
+      }
+
       this.isRunning = false;
     }
   }
@@ -496,6 +517,45 @@ export class MaintenanceService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+  private async tryAcquireRetentionLock() {
+    if (!this.retentionUseDbLock()) {
+      return true;
+    }
+
+    const lockKey = this.retentionDbLockKey();
+
+    const rows = await this.prisma.$queryRaw<Array<{ acquired: boolean }>>`
+      SELECT pg_try_advisory_lock(${lockKey}) AS acquired
+    `;
+
+    const acquired = rows[0]?.acquired === true;
+
+    if (!acquired) {
+      this.logger.warn(
+        `Retention run skipped because db lock is held by another instance (key=${lockKey})`,
+      );
+    }
+
+    return acquired;
+  }
+
+  private async releaseRetentionLock() {
+    if (!this.retentionUseDbLock()) {
+      return;
+    }
+
+    const lockKey = this.retentionDbLockKey();
+
+    try {
+      await this.prisma.$queryRaw`
+        SELECT pg_advisory_unlock(${lockKey})
+      `;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to release retention db lock (key=${lockKey}): ${(error as Error).message}`,
+      );
+    }
+  }
   private retentionEnabled() {
     return this.config.get<boolean>('retention.enabled') ?? false;
   }
@@ -506,6 +566,14 @@ export class MaintenanceService implements OnModuleInit, OnModuleDestroy {
 
   private retentionIntervalHours() {
     return this.config.get<number>('retention.intervalHours') ?? 24;
+  }
+
+  private retentionUseDbLock() {
+    return this.config.get<boolean>('retention.useDbLock') ?? true;
+  }
+
+  private retentionDbLockKey() {
+    return this.config.get<number>('retention.dbLockKey') ?? 48151623;
   }
 
   private retentionOtpSessionsDays() {

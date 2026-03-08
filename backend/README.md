@@ -135,3 +135,10 @@ npx ts-node scripts/seed-dev.ts
 - Related env vars:
 - `OTP_WEBHOOK_SIGNING_SECRET`
 - `ATTACHMENT_STORAGE_WEBHOOK_SIGNING_SECRET`
+
+## Retention Job Concurrency
+
+- Retention purge uses PostgreSQL advisory lock by default to avoid concurrent runs across multiple backend instances.
+- Configure with:
+- `RETENTION_USE_DB_LOCK`
+- `RETENTION_DB_LOCK_KEY`
