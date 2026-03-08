@@ -6,6 +6,7 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import { ReadinessService } from '../src/health/readiness.service';
 import { AdminRequestsService } from '../src/modules/admin-requests/admin-requests.service';
 import { AdminAuditService } from '../src/modules/admin-audit/admin-audit.service';
 import { AdminSettingsService } from '../src/modules/admin-settings/admin-settings.service';
@@ -276,6 +277,21 @@ describe('HR Buddy API (e2e)', () => {
       status: 'IN_TRANSIT',
     })),
   };
+
+  const readinessServiceMock = {
+    getReport: jest.fn(async () => ({
+      ok: true,
+      checkedAt: '2030-01-01T00:00:00.000Z',
+      checks: [
+        {
+          name: 'database',
+          ok: true,
+          message: 'database connection is healthy',
+        },
+      ],
+    })),
+  };
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -296,6 +312,8 @@ describe('HR Buddy API (e2e)', () => {
       .useValue(maintenanceServiceMock)
       .overrideProvider(MessengerService)
       .useValue(messengerServiceMock)
+      .overrideProvider(ReadinessService)
+      .useValue(readinessServiceMock)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -351,6 +369,30 @@ describe('HR Buddy API (e2e)', () => {
         expect(Array.isArray(res.body.checks)).toBe(true);
       });
   });
+
+  it('GET /health/ready returns 503 when readiness report is not ready', async () => {
+    readinessServiceMock.getReport.mockResolvedValueOnce({
+      ok: false,
+      checkedAt: '2030-01-01T00:00:00.000Z',
+      checks: [
+        {
+          name: 'database',
+          ok: false,
+          message: 'database connection failed',
+        },
+      ],
+    });
+
+    await request(app.getHttpServer())
+      .get('/health/ready')
+      .expect(503)
+      .expect((res) => {
+        const payload = res.body.message ?? res.body;
+        expect(payload.ok).toBe(false);
+        expect(Array.isArray(payload.checks)).toBe(true);
+      });
+  });
+
   it('POST /auth-otp/send returns otp session payload', async () => {
     await request(app.getHttpServer())
       .post('/auth-otp/send')
