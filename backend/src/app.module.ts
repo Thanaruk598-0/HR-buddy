@@ -12,7 +12,7 @@ import { PostgresRateLimitStore } from './common/security/postgres-rate-limit.st
 import { RateLimitGuard } from './common/security/rate-limit.guard';
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
-import { GeoModule } from './geo/geo.module';
+import { GeoModule } from './modules/geo/geo.module';
 import { ReadinessService } from './health/readiness.service';
 import { AdminAuditModule } from './modules/admin-audit/admin-audit.module';
 import { AdminAuthModule } from './modules/admin-auth/admin-auth.module';

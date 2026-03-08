@@ -7,7 +7,7 @@ describe('resolveGeoDatasetPath', () => {
 
     const resolved = resolveGeoDatasetPath({
       cwd: 'C:/workspace/backend',
-      moduleDir: 'C:/workspace/backend/src/geo',
+      moduleDir: 'C:/workspace/backend/src/modules/geo',
       configuredPath: absolutePath,
       exists: (candidate) => candidate === absolutePath,
     });
@@ -22,7 +22,7 @@ describe('resolveGeoDatasetPath', () => {
 
     const resolved = resolveGeoDatasetPath({
       cwd,
-      moduleDir: 'C:/workspace/backend/src/geo',
+      moduleDir: 'C:/workspace/backend/src/modules/geo',
       configuredPath,
       exists: (candidate) => candidate === expected,
     });
@@ -43,7 +43,7 @@ describe('resolveGeoDatasetPath', () => {
 
     const resolved = resolveGeoDatasetPath({
       cwd,
-      moduleDir: 'C:/workspace/backend/src/geo',
+      moduleDir: 'C:/workspace/backend/src/modules/geo',
       configuredPath: null,
       exists: (candidate) => candidate === srcCandidate,
     });
@@ -51,11 +51,31 @@ describe('resolveGeoDatasetPath', () => {
     expect(resolved).toBe(srcCandidate);
   });
 
+  it('supports modules layout fallback from moduleDir', () => {
+    const cwd = 'C:/workspace/backend';
+    const modulesFallback = path.resolve(
+      cwd,
+      'src',
+      'data',
+      'geo',
+      'compiled',
+      'geo.compiled.json',
+    );
+
+    const resolved = resolveGeoDatasetPath({
+      cwd,
+      moduleDir: 'C:/workspace/backend/src/modules/geo',
+      configuredPath: null,
+      exists: (candidate) => candidate === modulesFallback,
+    });
+
+    expect(resolved).toBe(modulesFallback);
+  });
   it('throws with checked paths when file is missing', () => {
     expect(() =>
       resolveGeoDatasetPath({
         cwd: 'C:/workspace/backend',
-        moduleDir: 'C:/workspace/backend/src/geo',
+        moduleDir: 'C:/workspace/backend/src/modules/geo',
         configuredPath: '',
         exists: () => false,
       }),

@@ -37,6 +37,7 @@ export function resolveGeoDatasetPath(
     path.resolve(cwd, 'dist', GEO_DATASET_RELATIVE_PATH),
     path.resolve(cwd, GEO_DATASET_RELATIVE_PATH),
     path.resolve(moduleDir, '..', GEO_DATASET_RELATIVE_PATH),
+    path.resolve(moduleDir, '..', '..', GEO_DATASET_RELATIVE_PATH),
   );
 
   const dedupedCandidates = [...new Set(candidates)];
