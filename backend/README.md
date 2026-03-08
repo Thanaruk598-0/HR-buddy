@@ -72,6 +72,7 @@ API default port is `3001`.
 npm.cmd run build
 npm.cmd run test
 npm.cmd run test:e2e
+npm.cmd run smoke:preprod
 npm.cmd run lint
 ```
 
@@ -174,4 +175,3 @@ npx ts-node scripts/seed-dev.ts
 - Geo lookups are indexed in-memory at startup for faster read responses.
 - Province/District/Subdistrict queries are whitespace-tolerant and case-insensitive in lookup logic.
 - Dataset path can be overridden with `GEO_DATASET_PATH` for production deployments (for example when running from `dist`).
-

@@ -120,6 +120,14 @@ GET /admin/requests/export/csv
 ```
 Expected: 200 with `text/csv`
 
+Optional one-command smoke check:
+```powershell
+$env:SMOKE_BASE_URL="http://localhost:3001"
+$env:SMOKE_ADMIN_USERNAME="admin"
+$env:SMOKE_ADMIN_PASSWORD="<admin-password>"
+npm.cmd run smoke:preprod
+```
+
 ## 8) Retention Job Operations
 
 - Scheduled retention runs only when `RETENTION_ENABLED=true`.
