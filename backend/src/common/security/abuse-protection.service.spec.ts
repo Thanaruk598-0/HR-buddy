@@ -1,86 +1,122 @@
 import { ConfigService } from '@nestjs/config';
+import { MemoryRateLimitStore } from './memory-rate-limit.store';
+import { PostgresRateLimitStore } from './postgres-rate-limit.store';
 import { AbuseProtectionService } from './abuse-protection.service';
 
 describe('AbuseProtectionService', () => {
-  const config = {
-    get: jest.fn((key: string) => {
-      if (key === 'abuseProtection.maxEntries') {
-        return 50000;
-      }
-      return undefined;
-    }),
-  } as unknown as ConfigService;
-
+  let configGetMock: jest.Mock;
+  let memoryStore: jest.Mocked<MemoryRateLimitStore>;
+  let postgresStore: jest.Mocked<PostgresRateLimitStore>;
   let service: AbuseProtectionService;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    service = new AbuseProtectionService(config);
+    configGetMock = jest.fn((key: string) => {
+      if (key === 'abuseProtection.store') {
+        return 'memory';
+      }
+
+      if (key === 'abuseProtection.postgres.retryAfterSeconds') {
+        return 30;
+      }
+
+      return undefined;
+    });
+
+    memoryStore = {
+      consume: jest.fn(async () => ({
+        allowed: true,
+        remaining: 1,
+        retryAfterSeconds: 0,
+        resetAtUnix: 1_700_000_000,
+      })),
+    } as unknown as jest.Mocked<MemoryRateLimitStore>;
+
+    postgresStore = {
+      consume: jest.fn(async () => ({
+        allowed: true,
+        remaining: 2,
+        retryAfterSeconds: 0,
+        resetAtUnix: 1_700_000_100,
+      })),
+    } as unknown as jest.Mocked<PostgresRateLimitStore>;
+
+    service = new AbuseProtectionService(
+      { get: configGetMock } as unknown as ConfigService,
+      memoryStore,
+      postgresStore,
+    );
   });
 
-  it('allows requests under policy limit', () => {
-    const first = service.consume({
+  it('uses memory store when configured', async () => {
+    const result = await service.consume({
       scope: 'otpSend',
       key: 'ip=1.1.1.1',
-      policy: { windowSeconds: 60, maxRequests: 2, blockSeconds: 120 },
+      policy: { windowSeconds: 60, maxRequests: 5, blockSeconds: 300 },
       nowMs: 1_000,
     });
 
-    const second = service.consume({
-      scope: 'otpSend',
+    expect(memoryStore.consume).toHaveBeenCalledTimes(1);
+    expect(postgresStore.consume).not.toHaveBeenCalled();
+    expect(result.remaining).toBe(1);
+  });
+
+  it('uses postgres store when configured', async () => {
+    configGetMock.mockImplementation((key: string) => {
+      if (key === 'abuseProtection.store') {
+        return 'postgres';
+      }
+
+      if (key === 'abuseProtection.postgres.retryAfterSeconds') {
+        return 30;
+      }
+
+      return undefined;
+    });
+
+    const result = await service.consume({
+      scope: 'adminLogin',
+      key: 'ip=1.1.1.1:username=admin',
+      policy: { windowSeconds: 60, maxRequests: 10, blockSeconds: 600 },
+      nowMs: 1_000,
+    });
+
+    expect(postgresStore.consume).toHaveBeenCalledTimes(1);
+    expect(memoryStore.consume).not.toHaveBeenCalled();
+    expect(result.remaining).toBe(2);
+  });
+
+  it('falls back to memory when postgres store fails', async () => {
+    configGetMock.mockImplementation((key: string) => {
+      if (key === 'abuseProtection.store') {
+        return 'postgres';
+      }
+
+      if (key === 'abuseProtection.postgres.retryAfterSeconds') {
+        return 30;
+      }
+
+      return undefined;
+    });
+
+    postgresStore.consume.mockRejectedValueOnce(new Error('relation missing'));
+
+    const first = await service.consume({
+      scope: 'otpVerify',
       key: 'ip=1.1.1.1',
-      policy: { windowSeconds: 60, maxRequests: 2, blockSeconds: 120 },
+      policy: { windowSeconds: 60, maxRequests: 10, blockSeconds: 300 },
+      nowMs: 1_000,
+    });
+
+    const second = await service.consume({
+      scope: 'otpVerify',
+      key: 'ip=1.1.1.1',
+      policy: { windowSeconds: 60, maxRequests: 10, blockSeconds: 300 },
       nowMs: 2_000,
     });
 
+    expect(postgresStore.consume).toHaveBeenCalledTimes(1);
+    expect(memoryStore.consume).toHaveBeenCalledTimes(2);
     expect(first.allowed).toBe(true);
-    expect(first.remaining).toBe(1);
     expect(second.allowed).toBe(true);
-    expect(second.remaining).toBe(0);
-  });
-
-  it('blocks request after exceeding policy limit', () => {
-    service.consume({
-      scope: 'otpSend',
-      key: 'ip=1.1.1.1',
-      policy: { windowSeconds: 60, maxRequests: 1, blockSeconds: 120 },
-      nowMs: 1_000,
-    });
-
-    const blocked = service.consume({
-      scope: 'otpSend',
-      key: 'ip=1.1.1.1',
-      policy: { windowSeconds: 60, maxRequests: 1, blockSeconds: 120 },
-      nowMs: 2_000,
-    });
-
-    expect(blocked.allowed).toBe(false);
-    expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
-  });
-
-  it('resets counter after window passes', () => {
-    service.consume({
-      scope: 'requestCreate',
-      key: 'ip=1.1.1.1',
-      policy: { windowSeconds: 10, maxRequests: 1, blockSeconds: 0 },
-      nowMs: 1_000,
-    });
-
-    const blocked = service.consume({
-      scope: 'requestCreate',
-      key: 'ip=1.1.1.1',
-      policy: { windowSeconds: 10, maxRequests: 1, blockSeconds: 0 },
-      nowMs: 2_000,
-    });
-
-    const allowedAfterWindow = service.consume({
-      scope: 'requestCreate',
-      key: 'ip=1.1.1.1',
-      policy: { windowSeconds: 10, maxRequests: 1, blockSeconds: 0 },
-      nowMs: 12_000,
-    });
-
-    expect(blocked.allowed).toBe(false);
-    expect(allowedAfterWindow.allowed).toBe(true);
   });
 });

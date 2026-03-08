@@ -8,7 +8,10 @@ export default () => ({
     process.env.OTP_HASH_SECRET ?? 'dev-only-change-this-otp-hash-secret',
   otp: {
     codeTtlMinutes: parseInt(process.env.OTP_CODE_TTL_MINUTES ?? '5', 10),
-    sessionTtlMinutes: parseInt(process.env.OTP_SESSION_TTL_MINUTES ?? '30', 10),
+    sessionTtlMinutes: parseInt(
+      process.env.OTP_SESSION_TTL_MINUTES ?? '30',
+      10,
+    ),
     maxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS ?? '5', 10),
     sendCooldownSeconds: parseInt(
       process.env.OTP_SEND_COOLDOWN_SECONDS ?? '60',
@@ -18,7 +21,10 @@ export default () => ({
     deliveryProvider: process.env.OTP_DELIVERY_PROVIDER ?? 'console',
     webhookUrl: process.env.OTP_WEBHOOK_URL ?? null,
     webhookApiKey: process.env.OTP_WEBHOOK_API_KEY ?? null,
-    webhookTimeoutMs: parseInt(process.env.OTP_WEBHOOK_TIMEOUT_MS ?? '5000', 10),
+    webhookTimeoutMs: parseInt(
+      process.env.OTP_WEBHOOK_TIMEOUT_MS ?? '5000',
+      10,
+    ),
     webhookMaxRetries: parseInt(process.env.OTP_WEBHOOK_MAX_RETRIES ?? '2', 10),
     webhookRetryDelayMs: parseInt(
       process.env.OTP_WEBHOOK_RETRY_DELAY_MS ?? '200',
@@ -31,7 +37,25 @@ export default () => ({
   ),
   abuseProtection: {
     enabled: process.env.ABUSE_PROTECTION_ENABLED !== 'false',
-    maxEntries: parseInt(process.env.ABUSE_PROTECTION_MAX_ENTRIES ?? '50000', 10),
+    store: process.env.ABUSE_PROTECTION_STORE ?? 'memory',
+    postgres: {
+      retryAfterSeconds: parseInt(
+        process.env.ABUSE_PROTECTION_POSTGRES_RETRY_AFTER_SECONDS ?? '30',
+        10,
+      ),
+      cleanupIntervalSeconds: parseInt(
+        process.env.ABUSE_PROTECTION_POSTGRES_CLEANUP_INTERVAL_SECONDS ?? '300',
+        10,
+      ),
+      retentionHours: parseInt(
+        process.env.ABUSE_PROTECTION_POSTGRES_RETENTION_HOURS ?? '48',
+        10,
+      ),
+    },
+    maxEntries: parseInt(
+      process.env.ABUSE_PROTECTION_MAX_ENTRIES ?? '50000',
+      10,
+    ),
     policies: {
       otpSend: {
         windowSeconds: parseInt(
@@ -128,7 +152,10 @@ export default () => ({
     enabled: process.env.RETENTION_ENABLED === 'true',
     runOnStartup: process.env.RETENTION_RUN_ON_STARTUP === 'true',
     intervalHours: parseInt(process.env.RETENTION_INTERVAL_HOURS ?? '24', 10),
-    otpSessionsDays: parseInt(process.env.RETENTION_OTP_SESSIONS_DAYS ?? '7', 10),
+    otpSessionsDays: parseInt(
+      process.env.RETENTION_OTP_SESSIONS_DAYS ?? '7',
+      10,
+    ),
     employeeSessionsDays: parseInt(
       process.env.RETENTION_EMPLOYEE_SESSIONS_DAYS ?? '7',
       10,
@@ -164,6 +191,9 @@ export default () => ({
     sessionSecret:
       process.env.ADMIN_SESSION_SECRET ??
       'dev-only-change-this-admin-session-secret',
-    sessionTtlMinutes: parseInt(process.env.ADMIN_SESSION_TTL_MINUTES ?? '480', 10),
+    sessionTtlMinutes: parseInt(
+      process.env.ADMIN_SESSION_TTL_MINUTES ?? '480',
+      10,
+    ),
   },
 });

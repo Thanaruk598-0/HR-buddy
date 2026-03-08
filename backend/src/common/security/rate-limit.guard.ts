@@ -23,7 +23,7 @@ export class RateLimitGuard implements CanActivate {
     private readonly abuseProtectionService: AbuseProtectionService,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     if (context.getType() !== 'http') {
       return true;
     }
@@ -54,7 +54,7 @@ export class RateLimitGuard implements CanActivate {
 
     const key = this.resolveClientKey(policy, req);
 
-    const result = this.abuseProtectionService.consume({
+    const result = await this.abuseProtectionService.consume({
       scope: policy,
       key,
       policy: cfg,

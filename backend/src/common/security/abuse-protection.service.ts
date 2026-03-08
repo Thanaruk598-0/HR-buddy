@@ -1,119 +1,65 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { MemoryRateLimitStore } from './memory-rate-limit.store';
+import { PostgresRateLimitStore } from './postgres-rate-limit.store';
 import {
+  AbuseProtectionStoreName,
   RateLimitConsumeInput,
   RateLimitConsumeResult,
 } from './rate-limit.types';
 
-type CounterEntry = {
-  windowStartMs: number;
-  count: number;
-  blockedUntilMs: number;
-  updatedAtMs: number;
-};
-
 @Injectable()
 export class AbuseProtectionService {
-  private readonly counters = new Map<string, CounterEntry>();
+  private readonly logger = new Logger(AbuseProtectionService.name);
+  private postgresDisabledUntilMs = 0;
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly memoryStore: MemoryRateLimitStore,
+    private readonly postgresStore: PostgresRateLimitStore,
+  ) {}
 
-  consume(input: RateLimitConsumeInput): RateLimitConsumeResult {
-    const nowMs = input.nowMs ?? Date.now();
-    const windowMs = Math.max(1, input.policy.windowSeconds) * 1000;
-    const blockMs = Math.max(0, input.policy.blockSeconds) * 1000;
+  async consume(input: RateLimitConsumeInput): Promise<RateLimitConsumeResult> {
+    const preferredStore = this.storeName();
 
-    const mapKey = `${input.scope}:${input.key}`;
+    if (preferredStore === 'postgres') {
+      const nowMs = Date.now();
 
-    const entry = this.counters.get(mapKey) ?? {
-      windowStartMs: nowMs,
-      count: 0,
-      blockedUntilMs: 0,
-      updatedAtMs: nowMs,
-    };
+      if (nowMs < this.postgresDisabledUntilMs) {
+        return this.memoryStore.consume(input);
+      }
 
-    if (entry.blockedUntilMs > nowMs) {
-      entry.updatedAtMs = nowMs;
-      this.counters.set(mapKey, entry);
+      try {
+        return await this.postgresStore.consume(input);
+      } catch (error) {
+        const retryAfterSeconds = this.postgresRetryAfterSeconds();
+        this.postgresDisabledUntilMs = nowMs + retryAfterSeconds * 1000;
 
-      return {
-        allowed: false,
-        remaining: 0,
-        retryAfterSeconds: Math.max(
-          1,
-          Math.ceil((entry.blockedUntilMs - nowMs) / 1000),
-        ),
-        resetAtUnix: Math.ceil(entry.blockedUntilMs / 1000),
-      };
-    }
+        this.logger.warn(
+          `Postgres abuse store failed. Fallback to memory for ${retryAfterSeconds}s: ${(error as Error).message}`,
+        );
 
-    if (nowMs - entry.windowStartMs >= windowMs) {
-      entry.windowStartMs = nowMs;
-      entry.count = 0;
-      entry.blockedUntilMs = 0;
-    }
-
-    if (entry.count >= input.policy.maxRequests) {
-      const windowResetMs = entry.windowStartMs + windowMs;
-      const effectiveBlockedUntilMs =
-        blockMs > 0 ? nowMs + blockMs : windowResetMs;
-
-      entry.blockedUntilMs = Math.max(effectiveBlockedUntilMs, windowResetMs);
-      entry.updatedAtMs = nowMs;
-      this.counters.set(mapKey, entry);
-      this.cleanup(nowMs);
-
-      return {
-        allowed: false,
-        remaining: 0,
-        retryAfterSeconds: Math.max(
-          1,
-          Math.ceil((entry.blockedUntilMs - nowMs) / 1000),
-        ),
-        resetAtUnix: Math.ceil(entry.blockedUntilMs / 1000),
-      };
-    }
-
-    entry.count += 1;
-    entry.updatedAtMs = nowMs;
-    this.counters.set(mapKey, entry);
-    this.cleanup(nowMs);
-
-    return {
-      allowed: true,
-      remaining: Math.max(0, input.policy.maxRequests - entry.count),
-      retryAfterSeconds: 0,
-      resetAtUnix: Math.ceil((entry.windowStartMs + windowMs) / 1000),
-    };
-  }
-
-  private cleanup(nowMs: number) {
-    const maxEntries = this.maxEntries();
-
-    if (this.counters.size <= maxEntries) {
-      return;
-    }
-
-    const staleBeforeMs = nowMs - 6 * 60 * 60 * 1000;
-
-    for (const [key, entry] of this.counters) {
-      if (entry.updatedAtMs < staleBeforeMs) {
-        this.counters.delete(key);
+        return this.memoryStore.consume(input);
       }
     }
 
-    while (this.counters.size > maxEntries) {
-      const oldestKey = this.counters.keys().next().value as string | undefined;
-
-      if (!oldestKey) {
-        return;
-      }
-
-      this.counters.delete(oldestKey);
-    }
+    return this.memoryStore.consume(input);
   }
 
-  private maxEntries() {
-    return this.config.get<number>('abuseProtection.maxEntries') ?? 50000;
+  private storeName(): AbuseProtectionStoreName {
+    const configured = this.config.get<string>('abuseProtection.store');
+
+    if (configured === 'postgres') {
+      return 'postgres';
+    }
+
+    return 'memory';
+  }
+
+  private postgresRetryAfterSeconds() {
+    return (
+      this.config.get<number>('abuseProtection.postgres.retryAfterSeconds') ??
+      30
+    );
   }
 }

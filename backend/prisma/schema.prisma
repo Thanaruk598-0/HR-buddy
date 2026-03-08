@@ -443,3 +443,17 @@ model RequestSla {
   @@index([slaStatus, slaDueAt])
   @@map("request_sla")
 }
+
+model AbuseRateLimitCounter {
+  scope         String    @map("scope")
+  keyHash       String    @map("key_hash")
+  windowStartAt DateTime  @map("window_start_at")
+  requestCount  Int       @default(0) @map("request_count")
+  blockedUntil  DateTime? @map("blocked_until")
+  updatedAt     DateTime  @default(now()) @map("updated_at")
+
+  @@id([scope, keyHash])
+  @@index([updatedAt])
+  @@index([scope, updatedAt])
+  @@map("abuse_rate_limit_counters")
+}

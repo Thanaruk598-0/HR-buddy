@@ -5,6 +5,7 @@ Backend API for HR-Buddy internal service request platform (Construction Lines).
 ## Current v1 Scope
 
 Implemented modules:
+
 - `requests`
 - `admin-auth`
 - `admin-requests`
@@ -112,3 +113,10 @@ npx ts-node scripts/seed-dev.ts
 - `POST /admin/auth/login` (`adminLogin`)
 - `POST /requests/building|vehicle|messenger|document` (`requestCreate`)
 - Exceeded limits return `429` with `Retry-After` and rate limit headers.
+- Store backend is configurable via `ABUSE_PROTECTION_STORE`:
+- `memory` (default, single-instance)
+- `postgres` (multi-instance safe via shared DB counters)
+- Optional postgres tuning:
+- `ABUSE_PROTECTION_POSTGRES_RETRY_AFTER_SECONDS`
+- `ABUSE_PROTECTION_POSTGRES_CLEANUP_INTERVAL_SECONDS`
+- `ABUSE_PROTECTION_POSTGRES_RETENTION_HOURS`

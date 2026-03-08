@@ -1,18 +1,16 @@
-import {
-  MiddlewareConsumer,
-  Module,
-  NestModule,
-} from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { AppController } from './app.controller';
 import { ExceptionLoggingFilter } from './common/http/exception-logging.filter';
 import { RequestContextMiddleware } from './common/http/request-context.middleware';
 import { RequestLoggingInterceptor } from './common/http/request-logging.interceptor';
 import { AbuseProtectionService } from './common/security/abuse-protection.service';
+import { MemoryRateLimitStore } from './common/security/memory-rate-limit.store';
+import { PostgresRateLimitStore } from './common/security/postgres-rate-limit.store';
 import { RateLimitGuard } from './common/security/rate-limit.guard';
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
-import { AppController } from './app.controller';
 import { GeoModule } from './geo/geo.module';
 import { AdminAuditModule } from './modules/admin-audit/admin-audit.module';
 import { AdminAuthModule } from './modules/admin-auth/admin-auth.module';
@@ -49,6 +47,8 @@ import { PrismaModule } from './prisma/prisma.module';
   controllers: [AppController],
   providers: [
     AbuseProtectionService,
+    MemoryRateLimitStore,
+    PostgresRateLimitStore,
     {
       provide: APP_GUARD,
       useClass: RateLimitGuard,

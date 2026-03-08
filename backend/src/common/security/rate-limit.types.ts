@@ -25,3 +25,5 @@ export type RateLimitConsumeResult = {
   retryAfterSeconds: number;
   resetAtUnix: number;
 };
+
+export type AbuseProtectionStoreName = 'memory' | 'postgres';
