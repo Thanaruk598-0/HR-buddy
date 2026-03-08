@@ -20,7 +20,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "smoke:preprod": "ts-node scripts/smoke-preprod.ts",
     "release:gate": "ts-node scripts/release-gate.ts",
-    "lint:check": "eslint \"{src,apps,libs,test}/**/*.ts\""
+    "lint:check": "eslint \"{src,apps,libs,test}/**/*.ts\"",
+    "freeze:check": "ts-node scripts/freeze-check.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

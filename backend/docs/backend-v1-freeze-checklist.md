@@ -11,6 +11,7 @@ This checklist is used to freeze backend scope before frontend integration and b
 ## 2) Quality Gate
 
 - Local gate passes: `npm.cmd run release:gate`
+- Freeze readiness check passes: `npm.cmd run freeze:check`
 - GitHub `Backend Release Gate` passes on latest commit
 - Branch protection keeps release gate as required status check
 
@@ -42,3 +43,4 @@ Freeze is complete when all below are true:
 - [ ] Release note committed
 - [ ] Commit hash tagged or recorded for release candidate
 - [ ] Frontend team receives handover link + backend RC hash
+
