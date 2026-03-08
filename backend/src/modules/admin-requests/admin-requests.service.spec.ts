@@ -43,6 +43,35 @@ describe('AdminRequestsService.updateStatus', () => {
     notificationsService as never,
   );
 
+  const makeRequest = (overrides: Record<string, unknown> = {}) => ({
+    type: RequestType.BUILDING,
+    status: RequestStatus.NEW,
+    requestNo: 'HRB-BASE',
+    phone: '+66810000000',
+    documentRequestDetail: null,
+    ...overrides,
+  });
+
+  const makeDocumentDetail = (overrides: Record<string, unknown> = {}) => ({
+    deliveryMethod: DeliveryMethod.DIGITAL,
+    deliveryAddressId: null,
+    digitalFileAttachmentId: null,
+    pickupNote: null,
+    ...overrides,
+  });
+
+  const expectBadRequestCode = async (task: Promise<unknown>, code: string) => {
+    try {
+      await task;
+      fail(`expected BadRequestException with code ${code}`);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadRequestException);
+      expect((error as BadRequestException).getResponse()).toMatchObject({
+        code,
+      });
+    }
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -61,75 +90,225 @@ describe('AdminRequestsService.updateStatus', () => {
   });
 
   it('rejects invalid status transition for messenger', async () => {
-    tx.request.findUnique.mockResolvedValue({
-      type: RequestType.MESSENGER,
-      status: RequestStatus.APPROVED,
-      requestNo: 'HRB-1',
-      phone: '+66811111111',
-      documentRequestDetail: null,
-    });
+    tx.request.findUnique.mockResolvedValue(
+      makeRequest({
+        type: RequestType.MESSENGER,
+        status: RequestStatus.APPROVED,
+      }),
+    );
 
-    try {
-      await service.updateStatus('req-1', {
+    await expectBadRequestCode(
+      service.updateStatus('req-1', {
         status: RequestStatus.DONE,
         operatorId: 'op-1',
-      });
-      fail('expected updateStatus to throw');
-    } catch (error) {
-      expect(error).toBeInstanceOf(BadRequestException);
-      expect((error as BadRequestException).getResponse()).toMatchObject({
-        code: 'INVALID_STATUS_TRANSITION',
-      });
-    }
+      }),
+      'INVALID_STATUS_TRANSITION',
+    );
 
     expect(tx.request.update).not.toHaveBeenCalled();
     expect(tx.requestActivityLog.create).not.toHaveBeenCalled();
   });
 
-  it('rejects document done when DIGITAL has no file attachment', async () => {
-    tx.request.findUnique.mockResolvedValue({
-      type: RequestType.DOCUMENT,
-      status: RequestStatus.APPROVED,
-      requestNo: 'HRB-2',
-      phone: '+66822222222',
-      documentRequestDetail: {
-        deliveryMethod: DeliveryMethod.DIGITAL,
-        deliveryAddressId: null,
-        digitalFileAttachmentId: null,
-        pickupNote: null,
-      },
+  it('rejects when operator id is invalid', async () => {
+    tx.request.findUnique.mockResolvedValue(makeRequest());
+    tx.operator.findUnique.mockResolvedValue(null);
+
+    await expectBadRequestCode(
+      service.updateStatus('req-1', {
+        status: RequestStatus.APPROVED,
+        operatorId: 'op-missing',
+      }),
+      'INVALID_OPERATOR_ID',
+    );
+
+    expect(tx.request.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects when operator is inactive', async () => {
+    tx.request.findUnique.mockResolvedValue(makeRequest());
+    tx.operator.findUnique.mockResolvedValue({
+      id: 'op-inactive',
+      isActive: false,
     });
 
-    try {
-      await service.updateStatus('req-1', {
+    await expectBadRequestCode(
+      service.updateStatus('req-1', {
+        status: RequestStatus.APPROVED,
+        operatorId: 'op-inactive',
+      }),
+      'OPERATOR_INACTIVE',
+    );
+
+    expect(tx.request.update).not.toHaveBeenCalled();
+  });
+
+  it('requires note for REJECTED action', async () => {
+    tx.request.findUnique.mockResolvedValue(makeRequest());
+
+    await expectBadRequestCode(
+      service.updateStatus('req-1', {
+        status: RequestStatus.REJECTED,
+        operatorId: 'op-1',
+      }),
+      'NOTE_REQUIRED_FOR_ACTION',
+    );
+
+    expect(tx.request.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects document action when detail is missing', async () => {
+    tx.request.findUnique.mockResolvedValue(
+      makeRequest({
+        type: RequestType.DOCUMENT,
+        status: RequestStatus.NEW,
+        documentRequestDetail: null,
+      }),
+    );
+
+    await expectBadRequestCode(
+      service.updateStatus('req-1', {
+        status: RequestStatus.APPROVED,
+        operatorId: 'op-1',
+      }),
+      'DOCUMENT_DETAIL_NOT_FOUND',
+    );
+  });
+
+  it('rejects document APPROVED when POSTAL has no delivery address', async () => {
+    tx.request.findUnique.mockResolvedValue(
+      makeRequest({
+        type: RequestType.DOCUMENT,
+        status: RequestStatus.NEW,
+        documentRequestDetail: makeDocumentDetail({
+          deliveryMethod: DeliveryMethod.POSTAL,
+          deliveryAddressId: null,
+        }),
+      }),
+    );
+
+    await expectBadRequestCode(
+      service.updateStatus('req-1', {
+        status: RequestStatus.APPROVED,
+        operatorId: 'op-1',
+      }),
+      'DELIVERY_ADDRESS_REQUIRED_BEFORE_APPROVED',
+    );
+  });
+
+  it('rejects document DONE when DIGITAL has no file attachment', async () => {
+    tx.request.findUnique.mockResolvedValue(
+      makeRequest({
+        type: RequestType.DOCUMENT,
+        status: RequestStatus.APPROVED,
+        requestNo: 'HRB-2',
+        phone: '+66822222222',
+        documentRequestDetail: makeDocumentDetail({
+          deliveryMethod: DeliveryMethod.DIGITAL,
+          digitalFileAttachmentId: null,
+        }),
+      }),
+    );
+
+    await expectBadRequestCode(
+      service.updateStatus('req-1', {
         status: RequestStatus.DONE,
         operatorId: 'op-1',
-      });
-      fail('expected updateStatus to throw');
-    } catch (error) {
-      expect(error).toBeInstanceOf(BadRequestException);
-      expect((error as BadRequestException).getResponse()).toMatchObject({
-        code: 'DIGITAL_FILE_REQUIRED_BEFORE_DONE',
-      });
-    }
+      }),
+      'DIGITAL_FILE_REQUIRED_BEFORE_DONE',
+    );
 
     expect(tx.documentRequestDetail.update).not.toHaveBeenCalled();
     expect(tx.request.update).not.toHaveBeenCalled();
   });
 
-  it('updates document to DONE when DIGITAL has valid attachment', async () => {
-    tx.request.findUnique.mockResolvedValue({
-      type: RequestType.DOCUMENT,
-      status: RequestStatus.APPROVED,
-      requestNo: 'HRB-3',
-      phone: '+66833333333',
-      documentRequestDetail: {
-        deliveryMethod: DeliveryMethod.DIGITAL,
-        deliveryAddressId: null,
-        digitalFileAttachmentId: null,
-        pickupNote: null,
-      },
+  it('rejects invalid digital file attachment id', async () => {
+    tx.request.findUnique.mockResolvedValue(
+      makeRequest({
+        type: RequestType.DOCUMENT,
+        status: RequestStatus.APPROVED,
+        documentRequestDetail: makeDocumentDetail({
+          deliveryMethod: DeliveryMethod.DIGITAL,
+        }),
+      }),
+    );
+
+    tx.requestAttachment.findUnique.mockResolvedValue(null);
+
+    await expectBadRequestCode(
+      service.updateStatus('req-1', {
+        status: RequestStatus.DONE,
+        operatorId: 'op-1',
+        digitalFileAttachmentId: 'att-missing',
+      }),
+      'INVALID_DIGITAL_FILE_ATTACHMENT_ID',
+    );
+
+    expect(tx.request.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects digital file attachment when file kind is not DOCUMENT', async () => {
+    tx.request.findUnique.mockResolvedValue(
+      makeRequest({
+        type: RequestType.DOCUMENT,
+        status: RequestStatus.APPROVED,
+        documentRequestDetail: makeDocumentDetail({
+          deliveryMethod: DeliveryMethod.DIGITAL,
+        }),
+      }),
+    );
+
+    tx.requestAttachment.findUnique.mockResolvedValue({
+      id: 'att-image',
+      requestId: 'req-1',
+      fileKind: 'IMAGE',
     });
+
+    await expectBadRequestCode(
+      service.updateStatus('req-1', {
+        status: RequestStatus.DONE,
+        operatorId: 'op-1',
+        digitalFileAttachmentId: 'att-image',
+      }),
+      'DIGITAL_FILE_ATTACHMENT_MUST_BE_DOCUMENT',
+    );
+  });
+
+  it('rejects document DONE when PICKUP has no pickup note', async () => {
+    tx.request.findUnique.mockResolvedValue(
+      makeRequest({
+        type: RequestType.DOCUMENT,
+        status: RequestStatus.APPROVED,
+        documentRequestDetail: makeDocumentDetail({
+          deliveryMethod: DeliveryMethod.PICKUP,
+          pickupNote: null,
+        }),
+      }),
+    );
+
+    await expectBadRequestCode(
+      service.updateStatus('req-1', {
+        status: RequestStatus.DONE,
+        operatorId: 'op-1',
+        pickupNote: '   ',
+      }),
+      'PICKUP_NOTE_REQUIRED_BEFORE_DONE',
+    );
+
+    expect(tx.request.update).not.toHaveBeenCalled();
+  });
+
+  it('updates document to DONE when DIGITAL has valid attachment', async () => {
+    tx.request.findUnique.mockResolvedValue(
+      makeRequest({
+        type: RequestType.DOCUMENT,
+        status: RequestStatus.APPROVED,
+        requestNo: 'HRB-3',
+        phone: '+66833333333',
+        documentRequestDetail: makeDocumentDetail({
+          deliveryMethod: DeliveryMethod.DIGITAL,
+        }),
+      }),
+    );
 
     tx.requestAttachment.findUnique.mockResolvedValue({
       id: 'att-1',
@@ -188,14 +367,47 @@ describe('AdminRequestsService.updateStatus', () => {
     );
   });
 
-  it('returns magic link payload when messenger is approved', async () => {
-    tx.request.findUnique.mockResolvedValue({
-      type: RequestType.MESSENGER,
-      status: RequestStatus.NEW,
-      requestNo: 'HRB-4',
-      phone: '+66844444444',
-      documentRequestDetail: null,
+  it('updates document to DONE when PICKUP has trimmed pickup note', async () => {
+    tx.request.findUnique.mockResolvedValue(
+      makeRequest({
+        type: RequestType.DOCUMENT,
+        status: RequestStatus.APPROVED,
+        documentRequestDetail: makeDocumentDetail({
+          deliveryMethod: DeliveryMethod.PICKUP,
+          pickupNote: null,
+        }),
+      }),
+    );
+
+    const result = await service.updateStatus('req-1', {
+      status: RequestStatus.DONE,
+      operatorId: 'op-1',
+      pickupNote: '  Pick at HR counter 13:00  ',
     });
+
+    expect(result).toEqual({
+      id: 'req-1',
+      status: RequestStatus.DONE,
+    });
+
+    expect(tx.documentRequestDetail.update).toHaveBeenCalledWith({
+      where: { requestId: 'req-1' },
+      data: {
+        pickupNote: 'Pick at HR counter 13:00',
+        digitalFileAttachmentId: undefined,
+      },
+    });
+  });
+
+  it('returns magic link payload when messenger is approved', async () => {
+    tx.request.findUnique.mockResolvedValue(
+      makeRequest({
+        type: RequestType.MESSENGER,
+        status: RequestStatus.NEW,
+        requestNo: 'HRB-4',
+        phone: '+66844444444',
+      }),
+    );
 
     const result = await service.updateStatus('req-1', {
       status: RequestStatus.APPROVED,
@@ -206,6 +418,14 @@ describe('AdminRequestsService.updateStatus', () => {
       messengerService.createOrRotateMagicLinkForRequest,
     ).toHaveBeenCalledWith(tx, 'req-1');
     expect(messengerService.revokeMagicLinkForRequest).not.toHaveBeenCalled();
+
+    expect(tx.request.update).toHaveBeenCalledWith({
+      where: { id: 'req-1' },
+      data: expect.objectContaining({
+        status: RequestStatus.APPROVED,
+        closedAt: null,
+      }),
+    });
 
     expect(result).toEqual({
       id: 'req-1',
@@ -218,13 +438,14 @@ describe('AdminRequestsService.updateStatus', () => {
   });
 
   it('revokes magic link when messenger reaches terminal status', async () => {
-    tx.request.findUnique.mockResolvedValue({
-      type: RequestType.MESSENGER,
-      status: RequestStatus.IN_TRANSIT,
-      requestNo: 'HRB-5',
-      phone: '+66855555555',
-      documentRequestDetail: null,
-    });
+    tx.request.findUnique.mockResolvedValue(
+      makeRequest({
+        type: RequestType.MESSENGER,
+        status: RequestStatus.IN_TRANSIT,
+        requestNo: 'HRB-5',
+        phone: '+66855555555',
+      }),
+    );
 
     const result = await service.updateStatus('req-1', {
       status: RequestStatus.DONE,
