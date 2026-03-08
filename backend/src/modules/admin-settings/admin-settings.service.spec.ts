@@ -33,9 +33,12 @@ describe('AdminSettingsService', () => {
   const service = new AdminSettingsService(prisma as never);
 
   const createPrismaKnownError = (code: string) =>
-    Object.assign(Object.create(Prisma.PrismaClientKnownRequestError.prototype), {
-      code,
-    });
+    Object.assign(
+      Object.create(Prisma.PrismaClientKnownRequestError.prototype),
+      {
+        code,
+      },
+    );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -46,7 +49,10 @@ describe('AdminSettingsService', () => {
       { id: 'dept-1', name: 'Human Resources', isActive: true },
     ]);
 
-    const result = await service.listDepartments({ q: '  Human  ', isActive: true });
+    const result = await service.listDepartments({
+      q: '  Human  ',
+      isActive: true,
+    });
 
     expect(prisma.department.findMany).toHaveBeenCalledWith({
       where: {

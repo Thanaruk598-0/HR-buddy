@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AdminSettingsListQueryDto } from './dto/admin-settings-list.query.dto';
@@ -67,7 +71,11 @@ export class AdminSettingsService {
         },
       });
     } catch (error) {
-      this.throwDuplicateError(error, 'DEPARTMENT_NAME_EXISTS', 'Department name already exists');
+      this.throwDuplicateError(
+        error,
+        'DEPARTMENT_NAME_EXISTS',
+        'Department name already exists',
+      );
     }
   }
 
@@ -77,7 +85,9 @@ export class AdminSettingsService {
     await this.assertDepartmentExists(id);
 
     const data: Prisma.DepartmentUpdateInput = {
-      ...(dto.name !== undefined ? { name: normalizeRequiredName(dto.name) } : {}),
+      ...(dto.name !== undefined
+        ? { name: normalizeRequiredName(dto.name) }
+        : {}),
       ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
     };
 
@@ -92,7 +102,11 @@ export class AdminSettingsService {
         },
       });
     } catch (error) {
-      this.throwDuplicateError(error, 'DEPARTMENT_NAME_EXISTS', 'Department name already exists');
+      this.throwDuplicateError(
+        error,
+        'DEPARTMENT_NAME_EXISTS',
+        'Department name already exists',
+      );
     }
   }
 
@@ -157,7 +171,9 @@ export class AdminSettingsService {
     await this.assertProblemCategoryExists(id);
 
     const data: Prisma.ProblemCategoryUpdateInput = {
-      ...(dto.name !== undefined ? { name: normalizeRequiredName(dto.name) } : {}),
+      ...(dto.name !== undefined
+        ? { name: normalizeRequiredName(dto.name) }
+        : {}),
       ...(dto.helperText !== undefined
         ? { helperText: normalizeOptionalText(dto.helperText) }
         : {}),
@@ -236,13 +252,18 @@ export class AdminSettingsService {
     }
   }
 
-  async updateVehicleIssueCategory(id: string, dto: UpdateVehicleIssueCategoryDto) {
+  async updateVehicleIssueCategory(
+    id: string,
+    dto: UpdateVehicleIssueCategoryDto,
+  ) {
     assertPatchFields(dto, ['name', 'isActive']);
 
     await this.assertVehicleIssueCategoryExists(id);
 
     const data: Prisma.VehicleIssueCategoryUpdateInput = {
-      ...(dto.name !== undefined ? { name: normalizeRequiredName(dto.name) } : {}),
+      ...(dto.name !== undefined
+        ? { name: normalizeRequiredName(dto.name) }
+        : {}),
       ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
     };
 
@@ -311,7 +332,11 @@ export class AdminSettingsService {
         },
       });
     } catch (error) {
-      this.throwDuplicateError(error, 'OPERATOR_NAME_EXISTS', 'Operator name already exists');
+      this.throwDuplicateError(
+        error,
+        'OPERATOR_NAME_EXISTS',
+        'Operator name already exists',
+      );
     }
   }
 
@@ -339,7 +364,11 @@ export class AdminSettingsService {
         },
       });
     } catch (error) {
-      this.throwDuplicateError(error, 'OPERATOR_NAME_EXISTS', 'Operator name already exists');
+      this.throwDuplicateError(
+        error,
+        'OPERATOR_NAME_EXISTS',
+        'Operator name already exists',
+      );
     }
   }
 
@@ -347,8 +376,15 @@ export class AdminSettingsService {
     return isActive === undefined ? {} : { isActive };
   }
 
-  private throwDuplicateError(error: unknown, code: string, message: string): never {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+  private throwDuplicateError(
+    error: unknown,
+    code: string,
+    message: string,
+  ): never {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
       throw new BadRequestException({ code, message });
     }
 
@@ -362,7 +398,10 @@ export class AdminSettingsService {
     });
 
     if (!row) {
-      throw new NotFoundException({ code: 'DEPARTMENT_NOT_FOUND', message: 'Department not found' });
+      throw new NotFoundException({
+        code: 'DEPARTMENT_NOT_FOUND',
+        message: 'Department not found',
+      });
     }
   }
 
@@ -401,7 +440,10 @@ export class AdminSettingsService {
     });
 
     if (!row) {
-      throw new NotFoundException({ code: 'OPERATOR_NOT_FOUND', message: 'Operator not found' });
+      throw new NotFoundException({
+        code: 'OPERATOR_NOT_FOUND',
+        message: 'Operator not found',
+      });
     }
   }
 }

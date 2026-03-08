@@ -19,9 +19,13 @@ export function toCsvCell(value: unknown): string {
 }
 
 export function buildCsv(headers: string[], rows: unknown[][]): string {
-  const headerLine = headers.map((value) => escapeCsvValue(toCsvCell(value))).join(',');
+  const headerLine = headers
+    .map((value) => escapeCsvValue(toCsvCell(value)))
+    .join(',');
   const rowLines = rows
-    .map((row) => row.map((value) => escapeCsvValue(toCsvCell(value))).join(','))
+    .map((row) =>
+      row.map((value) => escapeCsvValue(toCsvCell(value))).join(','),
+    )
     .join('\n');
 
   return rowLines ? `${headerLine}\n${rowLines}` : headerLine;

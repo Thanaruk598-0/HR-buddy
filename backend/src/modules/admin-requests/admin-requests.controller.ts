@@ -55,7 +55,10 @@ export class AdminRequestsController {
   ) {
     const result = await this.svc.exportCsv(q);
 
-    res.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${result.fileName}"`,
+    );
     res.setHeader('X-Export-Row-Count', String(result.rowCount));
 
     return result.csvContent;

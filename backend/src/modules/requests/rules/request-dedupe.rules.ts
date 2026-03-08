@@ -105,7 +105,8 @@ function equalsAddress(
     normalizeText(existing.postalCode) === normalizeText(input.postalCode) &&
     normalizeText(existing.houseNo) === normalizeText(input.houseNo) &&
     normalizeOptionalText(existing.soi) === normalizeOptionalText(input.soi) &&
-    normalizeOptionalText(existing.road) === normalizeOptionalText(input.road) &&
+    normalizeOptionalText(existing.road) ===
+      normalizeOptionalText(input.road) &&
     normalizeOptionalText(existing.extra) === normalizeOptionalText(input.extra)
   );
 }
@@ -125,7 +126,8 @@ export function isDuplicateBuildingRequest(
       detail.building === dto.building &&
       detail.floor === dto.floor &&
       detail.problemCategoryId === dto.problemCategoryId &&
-      normalizeText(detail.locationDetail) === normalizeText(dto.locationDetail) &&
+      normalizeText(detail.locationDetail) ===
+        normalizeText(dto.locationDetail) &&
       normalizeText(detail.description) === normalizeText(dto.description) &&
       normalizeOptionalText(detail.problemCategoryOther) ===
         normalizeOptionalText(dto.problemCategoryOther) &&
@@ -170,9 +172,11 @@ export function isDuplicateMessengerRequest(
     }
 
     return (
-      normalizeDateTime(detail.pickupDatetime) === normalizeDateTime(dto.pickupDatetime) &&
+      normalizeDateTime(detail.pickupDatetime) ===
+        normalizeDateTime(dto.pickupDatetime) &&
       detail.itemType === dto.itemType &&
-      normalizeText(detail.itemDescription) === normalizeText(dto.itemDescription) &&
+      normalizeText(detail.itemDescription) ===
+        normalizeText(dto.itemDescription) &&
       detail.outsideBkkMetro === dto.outsideBkkMetro &&
       (detail.deliveryService ?? null) === (dto.deliveryService ?? null) &&
       normalizeOptionalText(detail.deliveryServiceOther) ===
@@ -195,11 +199,13 @@ export function isDuplicateDocumentRequest(
     }
 
     const sameCore =
-      normalizeSiteName(detail.siteNameNormalized) === normalizeSiteName(dto.siteNameRaw) &&
+      normalizeSiteName(detail.siteNameNormalized) ===
+        normalizeSiteName(dto.siteNameRaw) &&
       normalizeText(detail.documentDescription) ===
         normalizeText(dto.documentDescription) &&
       normalizeText(detail.purpose) === normalizeText(dto.purpose) &&
-      normalizeDateTime(detail.neededDate) === normalizeDateTime(dto.neededDate) &&
+      normalizeDateTime(detail.neededDate) ===
+        normalizeDateTime(dto.neededDate) &&
       detail.deliveryMethod === dto.deliveryMethod &&
       normalizeOptionalText(detail.note) === normalizeOptionalText(dto.note);
 

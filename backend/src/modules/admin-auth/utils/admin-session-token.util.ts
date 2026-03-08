@@ -71,7 +71,9 @@ export function verifyAdminSessionToken(params: {
 }
 
 function sign(payloadEncoded: string, secret: string) {
-  return createHmac('sha256', secret).update(payloadEncoded).digest('base64url');
+  return createHmac('sha256', secret)
+    .update(payloadEncoded)
+    .digest('base64url');
 }
 
 function parsePayload(payloadEncoded: string): AdminTokenPayload | null {

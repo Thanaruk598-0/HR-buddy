@@ -76,7 +76,9 @@ export class AdminAuditService {
     };
   }
 
-  async exportCsv(q: AdminAuditExportQueryDto): Promise<AdminAuditCsvExportResult> {
+  async exportCsv(
+    q: AdminAuditExportQueryDto,
+  ): Promise<AdminAuditCsvExportResult> {
     const where = buildAdminAuditWhere(q);
     const limit = Math.min(q.limit ?? DEFAULT_EXPORT_LIMIT, MAX_EXPORT_LIMIT);
 

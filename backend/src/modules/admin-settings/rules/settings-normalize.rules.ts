@@ -14,7 +14,9 @@ export function normalizeRequiredName(value: string, field = 'name'): string {
   return normalized;
 }
 
-export function normalizeOptionalText(value?: string): string | null | undefined {
+export function normalizeOptionalText(
+  value?: string,
+): string | null | undefined {
   if (value === undefined) {
     return undefined;
   }

@@ -1,4 +1,10 @@
-import { isDuplicateBuildingRequest, isDuplicateDocumentRequest, isDuplicateMessengerRequest, isDuplicateVehicleRequest, type RequestDedupeCandidate } from './request-dedupe.rules';
+import {
+  isDuplicateBuildingRequest,
+  isDuplicateDocumentRequest,
+  isDuplicateMessengerRequest,
+  isDuplicateVehicleRequest,
+  type RequestDedupeCandidate,
+} from './request-dedupe.rules';
 
 function baseCandidate(): RequestDedupeCandidate {
   return {

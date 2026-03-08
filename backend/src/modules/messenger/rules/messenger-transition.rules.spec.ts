@@ -33,12 +33,15 @@ describe('assertMessengerTargetStatus', () => {
     },
   );
 
-  it.each<RequestStatus>(['NEW', 'APPROVED', 'IN_PROGRESS', 'REJECTED', 'CANCELED'])(
-    'rejects target status %s',
-    (status) => {
-      expect(() => assertMessengerTargetStatus(status)).toThrow(
-        BadRequestException,
-      );
-    },
-  );
+  it.each<RequestStatus>([
+    'NEW',
+    'APPROVED',
+    'IN_PROGRESS',
+    'REJECTED',
+    'CANCELED',
+  ])('rejects target status %s', (status) => {
+    expect(() => assertMessengerTargetStatus(status)).toThrow(
+      BadRequestException,
+    );
+  });
 });

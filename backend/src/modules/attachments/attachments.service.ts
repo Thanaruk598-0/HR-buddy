@@ -112,7 +112,10 @@ export class AttachmentsService {
     });
   }
 
-  async completeAdminUpload(requestId: string, dto: CompleteAttachmentUploadDto) {
+  async completeAdminUpload(
+    requestId: string,
+    dto: CompleteAttachmentUploadDto,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       await this.assertRequestExists(tx, requestId);
 
@@ -167,11 +170,13 @@ export class AttachmentsService {
     const expiresAt = this.secondsFromNow(this.uploadTicketTtlSeconds());
     const storageKey = this.generateStorageKey(requestId, dto.fileName);
 
-    const presign = await this.storageService.getProvider().createUploadPresign({
-      storageKey,
-      mimeType: dto.mimeType,
-      expiresAt,
-    });
+    const presign = await this.storageService
+      .getProvider()
+      .createUploadPresign({
+        storageKey,
+        mimeType: dto.mimeType,
+        expiresAt,
+      });
 
     const uploadToken = signAttachmentUploadTicket(
       {
@@ -283,11 +288,13 @@ export class AttachmentsService {
 
     const expiresAt = this.secondsFromNow(this.downloadUrlTtlSeconds());
 
-    const presign = await this.storageService.getProvider().createDownloadPresign({
-      storageKey: attachment.storageKey,
-      fileName: attachment.fileName,
-      expiresAt,
-    });
+    const presign = await this.storageService
+      .getProvider()
+      .createDownloadPresign({
+        storageKey: attachment.storageKey,
+        fileName: attachment.fileName,
+        expiresAt,
+      });
 
     return {
       attachmentId: attachment.id,
@@ -379,7 +386,10 @@ export class AttachmentsService {
     return attachment;
   }
 
-  private async assertRequestExists(tx: Prisma.TransactionClient, requestId: string) {
+  private async assertRequestExists(
+    tx: Prisma.TransactionClient,
+    requestId: string,
+  ) {
     const request = await tx.request.findUnique({
       where: { id: requestId },
       select: { id: true },

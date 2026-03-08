@@ -26,7 +26,8 @@ export class RequestLoggingInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       finalize(() => {
-        const durationMs = Number(process.hrtime.bigint() - startAt) / 1_000_000;
+        const durationMs =
+          Number(process.hrtime.bigint() - startAt) / 1_000_000;
 
         this.logger.log(
           JSON.stringify({

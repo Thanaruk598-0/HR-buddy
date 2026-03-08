@@ -62,7 +62,11 @@ export class RequestsController {
     @Body() dto: CreateAttachmentUploadTicketDto,
     @EmployeeSession() session: EmployeeSessionPrincipal,
   ) {
-    return this.attachmentsService.issueEmployeeUploadTicket(id, session.phone, dto);
+    return this.attachmentsService.issueEmployeeUploadTicket(
+      id,
+      session.phone,
+      dto,
+    );
   }
 
   @UseGuards(EmployeeSessionGuard)
@@ -72,7 +76,11 @@ export class RequestsController {
     @Body() dto: CompleteAttachmentUploadDto,
     @EmployeeSession() session: EmployeeSessionPrincipal,
   ) {
-    return this.attachmentsService.completeEmployeeUpload(id, session.phone, dto);
+    return this.attachmentsService.completeEmployeeUpload(
+      id,
+      session.phone,
+      dto,
+    );
   }
 
   @UseGuards(EmployeeSessionGuard)

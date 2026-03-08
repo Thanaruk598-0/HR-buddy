@@ -14,7 +14,11 @@ describe('OtpDeliveryService', () => {
     const consoleProvider = {} as OtpConsoleDeliveryProvider;
     const webhookProvider = {} as OtpWebhookDeliveryProvider;
 
-    const svc = new OtpDeliveryService(config, consoleProvider, webhookProvider);
+    const svc = new OtpDeliveryService(
+      config,
+      consoleProvider,
+      webhookProvider,
+    );
 
     expect(svc.getProvider()).toBe(webhookProvider);
     expect(svc.isConsoleProvider()).toBe(false);
@@ -28,7 +32,11 @@ describe('OtpDeliveryService', () => {
     const consoleProvider = {} as OtpConsoleDeliveryProvider;
     const webhookProvider = {} as OtpWebhookDeliveryProvider;
 
-    const svc = new OtpDeliveryService(config, consoleProvider, webhookProvider);
+    const svc = new OtpDeliveryService(
+      config,
+      consoleProvider,
+      webhookProvider,
+    );
 
     expect(svc.getProvider()).toBe(consoleProvider);
     expect(svc.isConsoleProvider()).toBe(true);

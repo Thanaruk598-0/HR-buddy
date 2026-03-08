@@ -10,7 +10,9 @@ describe('magic-link-token util', () => {
   });
 
   it('hashes token deterministically with secret', () => {
-    expect(hashMagicLinkToken('abc', 's1')).toBe(hashMagicLinkToken('abc', 's1'));
+    expect(hashMagicLinkToken('abc', 's1')).toBe(
+      hashMagicLinkToken('abc', 's1'),
+    );
     expect(hashMagicLinkToken('abc', 's1')).not.toBe(
       hashMagicLinkToken('abc', 's2'),
     );

@@ -21,7 +21,10 @@ export function normalizeNote(note?: string): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-export function assertActionNoteRule(status: RequestStatus, note: string | null) {
+export function assertActionNoteRule(
+  status: RequestStatus,
+  note: string | null,
+) {
   if (NOTE_REQUIRED_STATUSES.includes(status) && !note) {
     throw new BadRequestException({
       code: 'NOTE_REQUIRED_FOR_ACTION',

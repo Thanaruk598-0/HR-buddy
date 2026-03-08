@@ -1,4 +1,11 @@
-import { Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AdminSessionGuard } from '../admin-auth/admin-session.guard';
 import { NotificationListQueryDto } from './dto/notification-list.query.dto';
 import { NotificationsService } from './notifications.service';

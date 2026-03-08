@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { RequestStatus, RequestType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MessengerService } from '../messenger/messenger.service';
@@ -69,7 +73,9 @@ export class AdminRequestsService {
     return { items, page, limit, total };
   }
 
-  async summary(q: AdminRequestsReportQueryDto): Promise<AdminRequestSummaryResponse> {
+  async summary(
+    q: AdminRequestsReportQueryDto,
+  ): Promise<AdminRequestSummaryResponse> {
     const where = buildAdminRequestWhere(q);
 
     const rows = await this.prisma.request.findMany({
@@ -120,7 +126,9 @@ export class AdminRequestsService {
     };
   }
 
-  async exportCsv(q: AdminRequestsExportQueryDto): Promise<AdminRequestCsvExportResult> {
+  async exportCsv(
+    q: AdminRequestsExportQueryDto,
+  ): Promise<AdminRequestCsvExportResult> {
     const where = buildAdminRequestWhere(q);
     const limit = Math.min(q.limit ?? DEFAULT_EXPORT_LIMIT, MAX_EXPORT_LIMIT);
 

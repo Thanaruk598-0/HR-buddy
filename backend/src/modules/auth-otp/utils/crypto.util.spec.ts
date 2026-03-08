@@ -6,7 +6,9 @@ import {
 
 describe('auth-otp crypto util', () => {
   it('hashWithSecret should be deterministic', () => {
-    expect(hashWithSecret('abc', 'secret')).toBe(hashWithSecret('abc', 'secret'));
+    expect(hashWithSecret('abc', 'secret')).toBe(
+      hashWithSecret('abc', 'secret'),
+    );
     expect(hashWithSecret('abc', 'secret')).not.toBe(
       hashWithSecret('abc', 'other-secret'),
     );

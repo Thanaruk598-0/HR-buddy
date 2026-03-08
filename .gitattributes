@@ -1,0 +1,13 @@
+* text=auto
+
+# Keep CI/config files consistent across OS
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+
+# Backend source should remain LF to avoid prettier/eslint EOL drift
+backend/**/*.ts text eol=lf
+backend/**/*.js text eol=lf
+backend/**/*.mjs text eol=lf
+backend/**/*.json text eol=lf
+backend/**/*.md text eol=lf

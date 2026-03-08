@@ -12,7 +12,8 @@ export class AdminAuthService {
   constructor(private readonly config: ConfigService) {}
 
   login(usernameInput: string, passwordInput: string) {
-    const adminUsername = this.config.get<string>('adminAuth.username') ?? 'admin';
+    const adminUsername =
+      this.config.get<string>('adminAuth.username') ?? 'admin';
     const adminPassword =
       this.config.get<string>('adminAuth.password') ?? 'admin12345';
 

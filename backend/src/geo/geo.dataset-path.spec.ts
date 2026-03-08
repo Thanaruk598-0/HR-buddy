@@ -3,10 +3,7 @@ import { resolveGeoDatasetPath } from './geo.dataset-path';
 
 describe('resolveGeoDatasetPath', () => {
   it('returns absolute configured path first when exists', () => {
-    const absolutePath = path.resolve(
-      'C:/tmp',
-      'geo.compiled.json',
-    );
+    const absolutePath = path.resolve('C:/tmp', 'geo.compiled.json');
 
     const resolved = resolveGeoDatasetPath({
       cwd: 'C:/workspace/backend',

@@ -1,5 +1,11 @@
 import { RequestStatus, RequestType } from '@prisma/client';
-import { IsDateString, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class AdminRequestFilterQueryDto {
   @IsOptional()

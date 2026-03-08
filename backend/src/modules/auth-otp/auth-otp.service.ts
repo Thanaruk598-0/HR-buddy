@@ -175,7 +175,8 @@ export class AuthOtpService {
     const retryAfterSeconds = Math.max(
       1,
       Math.ceil(
-        (latestSession.createdAt.getTime() + cooldownSeconds * 1000 -
+        (latestSession.createdAt.getTime() +
+          cooldownSeconds * 1000 -
           now.getTime()) /
           1000,
       ),
@@ -243,6 +244,9 @@ export class AuthOtpService {
   }
 
   private shouldExposeDevOtp() {
-    return process.env.NODE_ENV !== 'production' && this.otpDeliveryService.isConsoleProvider();
+    return (
+      process.env.NODE_ENV !== 'production' &&
+      this.otpDeliveryService.isConsoleProvider()
+    );
   }
 }

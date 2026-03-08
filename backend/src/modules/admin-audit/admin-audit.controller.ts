@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Header,
-  Query,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Header, Query, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { AdminSessionGuard } from '../admin-auth/admin-session.guard';
 import { AdminAuditService } from './admin-audit.service';
@@ -31,7 +24,10 @@ export class AdminAuditController {
   ) {
     const result = await this.svc.exportCsv(q);
 
-    res.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${result.fileName}"`,
+    );
     res.setHeader('X-Export-Row-Count', String(result.rowCount));
 
     return result.csvContent;

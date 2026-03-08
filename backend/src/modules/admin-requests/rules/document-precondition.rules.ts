@@ -32,10 +32,7 @@ export function assertDocumentPreconditions(params: {
     return;
   }
 
-  if (
-    deliveryMethod === DeliveryMethod.POSTAL &&
-    !deliveryAddressId
-  ) {
+  if (deliveryMethod === DeliveryMethod.POSTAL && !deliveryAddressId) {
     throw new BadRequestException({
       code: 'DELIVERY_ADDRESS_REQUIRED_BEFORE_DONE',
       message:
@@ -43,10 +40,7 @@ export function assertDocumentPreconditions(params: {
     });
   }
 
-  if (
-    deliveryMethod === DeliveryMethod.DIGITAL &&
-    !digitalFileAttachmentId
-  ) {
+  if (deliveryMethod === DeliveryMethod.DIGITAL && !digitalFileAttachmentId) {
     throw new BadRequestException({
       code: 'DIGITAL_FILE_REQUIRED_BEFORE_DONE',
       message:
@@ -57,7 +51,8 @@ export function assertDocumentPreconditions(params: {
   if (deliveryMethod === DeliveryMethod.PICKUP && !pickupNote?.trim()) {
     throw new BadRequestException({
       code: 'PICKUP_NOTE_REQUIRED_BEFORE_DONE',
-      message: 'pickupNote is required before DONE when deliveryMethod is PICKUP',
+      message:
+        'pickupNote is required before DONE when deliveryMethod is PICKUP',
     });
   }
 }

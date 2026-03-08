@@ -8,7 +8,13 @@ describe('csv.util', () => {
   });
 
   it('escapes commas, quotes and newlines', () => {
-    const csv = buildCsv(['a', 'b'], [["hello,world", 'x"y'], ['line1\nline2', 'ok']]);
+    const csv = buildCsv(
+      ['a', 'b'],
+      [
+        ['hello,world', 'x"y'],
+        ['line1\nline2', 'ok'],
+      ],
+    );
 
     expect(csv).toContain('"hello,world"');
     expect(csv).toContain('"x""y"');

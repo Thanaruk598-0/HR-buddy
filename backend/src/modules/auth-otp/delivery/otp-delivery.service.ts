@@ -13,7 +13,8 @@ export class OtpDeliveryService {
   ) {}
 
   getProvider(): OtpDeliveryProvider {
-    const provider = this.config.get<string>('otp.deliveryProvider') ?? 'console';
+    const provider =
+      this.config.get<string>('otp.deliveryProvider') ?? 'console';
 
     if (provider === 'webhook') {
       return this.webhookProvider;
@@ -23,7 +24,8 @@ export class OtpDeliveryService {
   }
 
   isConsoleProvider() {
-    const provider = this.config.get<string>('otp.deliveryProvider') ?? 'console';
+    const provider =
+      this.config.get<string>('otp.deliveryProvider') ?? 'console';
     return provider === 'console';
   }
 }
