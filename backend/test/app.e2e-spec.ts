@@ -355,6 +355,8 @@ describe('HR Buddy API (e2e)', () => {
       .expect((res) => {
         expect(res.body).toEqual({ ok: true });
         expect(res.headers['x-request-id']).toBeDefined();
+        expect(res.headers['x-content-type-options']).toBe('nosniff');
+        expect(res.headers['x-frame-options']).toBe('DENY');
       });
   });
 

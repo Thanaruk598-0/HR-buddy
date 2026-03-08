@@ -37,6 +37,8 @@ Copy-Item .env.example .env
 2. Update required values in `.env` at minimum:
 
 - `DATABASE_URL`
+- `CORS_ORIGINS` (non-localhost origins for production)
+- `CORS_ALLOW_CREDENTIALS`
 - `OTP_HASH_SECRET`
 - `ATTACHMENT_UPLOAD_TICKET_SECRET`
 - `MESSENGER_MAGIC_LINK_SECRET`
@@ -180,4 +182,5 @@ Capture and store:
 - Migration version applied
 - Smoke test results with timestamp
 - Operator name who performed deployment
+
 

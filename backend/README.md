@@ -111,6 +111,14 @@ npx ts-node scripts/seed-dev.ts
 - If client sends `x-request-id`, backend reuses that value.
 - Access and error logs are emitted as structured JSON events (`http_request`, `http_exception`).
 
+
+## Security Baseline
+
+- HTTP responses include baseline security headers (`x-content-type-options`, `x-frame-options`, `referrer-policy`, `permissions-policy`).
+- CORS credentials behavior is configurable via `CORS_ALLOW_CREDENTIALS`.
+- Production startup guard rejects unsafe CORS combinations:
+- `CORS_ORIGINS` must not include localhost/127.0.0.1 origins
+- `CORS_ORIGINS` must not include `*` when `CORS_ALLOW_CREDENTIALS=true`
 ## Admin Audit APIs
 
 - `GET /admin/audit/activity-logs` (filter + pagination)
@@ -189,4 +197,5 @@ npx ts-node scripts/seed-dev.ts
 - Geo lookups are indexed in-memory at startup for faster read responses.
 - Province/District/Subdistrict queries are whitespace-tolerant and case-insensitive in lookup logic.
 - Dataset path can be overridden with `GEO_DATASET_PATH` for production deployments (for example when running from `dist`).
+
 

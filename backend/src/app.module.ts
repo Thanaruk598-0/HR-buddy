@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { ExceptionLoggingFilter } from './common/http/exception-logging.filter';
 import { RequestContextMiddleware } from './common/http/request-context.middleware';
+import { SecurityHeadersMiddleware } from './common/http/security-headers.middleware';
 import { RequestLoggingInterceptor } from './common/http/request-logging.interceptor';
 import { AbuseProtectionService } from './common/security/abuse-protection.service';
 import { MemoryRateLimitStore } from './common/security/memory-rate-limit.store';
@@ -67,6 +68,8 @@ import { PrismaModule } from './prisma/prisma.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RequestContextMiddleware).forRoutes('*');
+    consumer
+      .apply(RequestContextMiddleware, SecurityHeadersMiddleware)
+      .forRoutes('*');
   }
 }

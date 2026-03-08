@@ -4,6 +4,7 @@ export default () => ({
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
+  corsAllowCredentials: process.env.CORS_ALLOW_CREDENTIALS !== 'false',
   geo: {
     datasetPath: process.env.GEO_DATASET_PATH ?? null,
   },

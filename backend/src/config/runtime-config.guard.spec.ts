@@ -17,6 +17,8 @@ describe('runtime-config guard', () => {
     'attachments.storage.webhookSigningSecret':
       'attachment-webhook-signing-secret-123456',
     'readiness.strictProviders': false,
+    corsOrigins: ['https://portal.construction-lines.local'],
+    corsAllowCredentials: true,
   };
 
   const makeConfig = (overrides?: Record<string, unknown>) => {
@@ -117,5 +119,45 @@ describe('runtime-config guard', () => {
         }),
       ),
     ).not.toThrow();
+  });
+  it('returns validation error when production cors origins include localhost', () => {
+    const result = validateProductionConfig(
+      makeConfig({
+        corsOrigins: [
+          'https://portal.construction-lines.local',
+          'http://localhost:3000',
+        ],
+      }),
+    );
+
+    expect(result.errors).toContain(
+      'CORS_ORIGINS must not include localhost origins in production: http://localhost:3000',
+    );
+  });
+
+  it('returns validation error when wildcard cors origin is used with credentials', () => {
+    const result = validateProductionConfig(
+      makeConfig({
+        corsOrigins: ['*'],
+        corsAllowCredentials: true,
+      }),
+    );
+
+    expect(result.errors).toContain(
+      'CORS_ORIGINS cannot include * when CORS_ALLOW_CREDENTIALS=true',
+    );
+  });
+
+  it('allows wildcard cors origin when credentials are disabled', () => {
+    const result = validateProductionConfig(
+      makeConfig({
+        corsOrigins: ['*'],
+        corsAllowCredentials: false,
+      }),
+    );
+
+    expect(result.errors).not.toContain(
+      'CORS_ORIGINS cannot include * when CORS_ALLOW_CREDENTIALS=true',
+    );
   });
 });

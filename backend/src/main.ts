@@ -19,7 +19,7 @@ async function bootstrap() {
   assertRuntimeConfig(config);
   app.enableCors({
     origin: config.get<string[]>('corsOrigins'),
-    credentials: true,
+    credentials: config.get<boolean>('corsAllowCredentials') ?? true,
   });
 
   await app.listen(config.get<number>('port') ?? 3001);

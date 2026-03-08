@@ -118,9 +118,52 @@ export function validateProductionConfig(
     }
   }
 
+  const corsOrigins = config.get<string[]>('corsOrigins') ?? [];
+  const corsAllowCredentials =
+    config.get<boolean>('corsAllowCredentials') ?? true;
+
+  if (
+    corsAllowCredentials &&
+    corsOrigins.some((origin) => origin.trim() === '*')
+  ) {
+    errors.push(
+      'CORS_ORIGINS cannot include * when CORS_ALLOW_CREDENTIALS=true',
+    );
+  }
+
+  const localOrigins = corsOrigins.filter((origin) =>
+    isLocalhostOrigin(origin),
+  );
+
+  if (localOrigins.length > 0) {
+    errors.push(
+      `CORS_ORIGINS must not include localhost origins in production: ${localOrigins.join(', ')}`,
+    );
+  }
   return { errors };
 }
 
+function isLocalhostOrigin(origin: string) {
+  const normalized = origin.trim();
+
+  if (!normalized) {
+    return false;
+  }
+
+  if (normalized === '*') {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(normalized);
+    const host = parsed.hostname.toLowerCase();
+
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  } catch {
+    // keep validation non-breaking for malformed values; Joi handles syntax gate
+    return false;
+  }
+}
 function isProduction() {
   return process.env.NODE_ENV === 'production';
 }
