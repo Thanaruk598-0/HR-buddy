@@ -73,8 +73,14 @@ npm.cmd run build
 npm.cmd run test
 npm.cmd run test:e2e
 npm.cmd run smoke:preprod
+npm.cmd run release:gate
 npm.cmd run lint
 ```
+
+## Release Gate
+
+- `npm.cmd run release:gate` runs build + unit tests + e2e tests in sequence.
+- To include smoke checks in the same gate, set `RELEASE_GATE_INCLUDE_SMOKE=true` and required smoke envs (at minimum `SMOKE_ADMIN_PASSWORD`).
 
 ## Optional Dev Seed
 
@@ -179,3 +185,4 @@ npx ts-node scripts/seed-dev.ts
 - Geo lookups are indexed in-memory at startup for faster read responses.
 - Province/District/Subdistrict queries are whitespace-tolerant and case-insensitive in lookup logic.
 - Dataset path can be overridden with `GEO_DATASET_PATH` for production deployments (for example when running from `dist`).
+

@@ -57,6 +57,7 @@ Copy-Item .env.example .env
 ```powershell
 npm.cmd install
 npm.cmd run build
+npm.cmd run release:gate
 ```
 
 ## 5) Database Migration
@@ -178,3 +179,4 @@ Capture and store:
 - Migration version applied
 - Smoke test results with timestamp
 - Operator name who performed deployment
+
