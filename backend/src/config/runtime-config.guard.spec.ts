@@ -135,6 +135,17 @@ describe('runtime-config guard', () => {
     );
   });
 
+  it('returns validation error when production cors origins include ipv6 loopback', () => {
+    const result = validateProductionConfig(
+      makeConfig({
+        corsOrigins: ['http://[::1]:3000'],
+      }),
+    );
+
+    expect(result.errors).toContain(
+      'CORS_ORIGINS must not include localhost origins in production: http://[::1]:3000',
+    );
+  });
   it('returns validation error when wildcard cors origin is used with credentials', () => {
     const result = validateProductionConfig(
       makeConfig({

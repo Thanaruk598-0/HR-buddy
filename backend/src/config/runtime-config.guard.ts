@@ -158,7 +158,12 @@ function isLocalhostOrigin(origin: string) {
     const parsed = new URL(normalized);
     const host = parsed.hostname.toLowerCase();
 
-    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+    return (
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '::1' ||
+      host === '[::1]'
+    );
   } catch {
     // keep validation non-breaking for malformed values; Joi handles syntax gate
     return false;
