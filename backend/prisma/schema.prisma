@@ -197,6 +197,7 @@ model RequestAttachment {
 
   documentDigitalFor DocumentRequestDetail[] @relation("DocumentDigitalFile")
 
+  @@unique([requestId, storageKey])
   @@index([requestId, createdAt])
   @@index([storageKey])
   @@map("request_attachments")
@@ -466,3 +467,4 @@ model RequestNoCounter {
 
   @@map("request_no_counters")
 }
+

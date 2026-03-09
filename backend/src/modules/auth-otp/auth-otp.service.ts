@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OtpDeliveryService } from './delivery/otp-delivery.service';
 import { SendOtpDto } from './dto/send-otp.dto';
@@ -13,6 +14,8 @@ import {
   generateSessionToken,
   hashWithSecret,
 } from './utils/crypto.util';
+
+type Tx = Prisma.TransactionClient;
 
 @Injectable()
 export class AuthOtpService {
@@ -24,44 +27,54 @@ export class AuthOtpService {
 
   async sendOtp(dto: SendOtpDto) {
     const normalizedEmail = this.normalizeEmail(dto.email);
-    const now = new Date();
 
-    await this.assertSendCooldown(dto.phone, normalizedEmail, now);
-    await this.assertSendRateLimit(dto.phone, normalizedEmail, now);
+    const issued = await this.prisma.$transaction(async (tx) => {
+      await this.acquireOtpSendLock(tx, dto.phone, normalizedEmail);
 
-    const otpCode = generateOtpCode(6);
-    const otpCodeHash = this.hash(otpCode);
-    const expiresAt = this.minutesFromNow(this.otpTtlMinutes());
+      const now = new Date();
+      await this.assertSendCooldown(tx, dto.phone, normalizedEmail, now);
+      await this.assertSendRateLimit(tx, dto.phone, normalizedEmail, now);
 
-    const otpSession = await this.prisma.otpSession.create({
-      data: {
-        phone: dto.phone,
-        email: normalizedEmail,
-        otpCodeHash,
+      const otpCode = generateOtpCode(6);
+      const otpCodeHash = this.hash(otpCode);
+      const expiresAt = this.minutesFromNow(this.otpTtlMinutes());
+
+      const otpSession = await tx.otpSession.create({
+        data: {
+          phone: dto.phone,
+          email: normalizedEmail,
+          otpCodeHash,
+          expiresAt,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      return {
+        otpSessionId: otpSession.id,
+        otpCode,
         expiresAt,
-      },
-      select: {
-        id: true,
-      },
+      };
     });
 
     try {
       await this.otpDeliveryService.getProvider().sendOtp({
         phone: dto.phone,
         email: normalizedEmail,
-        otpCode,
-        expiresAt,
+        otpCode: issued.otpCode,
+        expiresAt: issued.expiresAt,
       });
     } catch (error) {
       await this.prisma.otpSession
-        .delete({ where: { id: otpSession.id } })
+        .delete({ where: { id: issued.otpSessionId } })
         .catch(() => undefined);
       throw error;
     }
 
     return {
-      expiresAt,
-      ...(this.shouldExposeDevOtp() ? { devOtp: otpCode } : {}),
+      expiresAt: issued.expiresAt,
+      ...(this.shouldExposeDevOtp() ? { devOtp: issued.otpCode } : {}),
     };
   }
 
@@ -174,14 +187,19 @@ export class AuthOtpService {
     });
   }
 
-  private async assertSendCooldown(phone: string, email: string, now: Date) {
+  private async assertSendCooldown(
+    tx: Tx,
+    phone: string,
+    email: string,
+    now: Date,
+  ) {
     const cooldownSeconds = this.otpSendCooldownSeconds();
 
     if (cooldownSeconds <= 0) {
       return;
     }
 
-    const latestSession = await this.prisma.otpSession.findFirst({
+    const latestSession = await tx.otpSession.findFirst({
       where: {
         phone,
         email,
@@ -216,10 +234,15 @@ export class AuthOtpService {
     });
   }
 
-  private async assertSendRateLimit(phone: string, email: string, now: Date) {
+  private async assertSendRateLimit(
+    tx: Tx,
+    phone: string,
+    email: string,
+    now: Date,
+  ) {
     const limitPerHour = this.otpMaxSendPerHour();
 
-    const lastHourCount = await this.prisma.otpSession.count({
+    const lastHourCount = await tx.otpSession.count({
       where: {
         phone,
         email,
@@ -237,6 +260,17 @@ export class AuthOtpService {
     }
   }
 
+  private async acquireOtpSendLock(tx: Tx, phone: string, email: string) {
+    const lockKey = this.otpSendLockKey(phone, email);
+
+    await tx.$queryRaw`
+      SELECT pg_advisory_xact_lock(hashtext(${lockKey}))
+    `;
+  }
+
+  private otpSendLockKey(phone: string, email: string) {
+    return `otp_send:${phone.trim()}:${email.trim().toLowerCase()}`;
+  }
   private hash(raw: string) {
     const secret = this.config.get<string>('otpHashSecret') ?? 'dev-otp-secret';
     return hashWithSecret(raw, secret);

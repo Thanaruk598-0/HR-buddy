@@ -6,6 +6,7 @@ describe('AuthOtpService hardening', () => {
   const now = new Date('2026-03-08T10:00:00.000Z');
 
   const tx = {
+    $queryRaw: jest.fn(),
     otpSession: {
       findFirst: jest.fn(),
       count: jest.fn(),
@@ -68,6 +69,7 @@ describe('AuthOtpService hardening', () => {
     jest.useFakeTimers().setSystemTime(now);
     jest.clearAllMocks();
 
+    tx.$queryRaw.mockResolvedValue([{ pg_advisory_xact_lock: null }]);
     tx.otpSession.findFirst.mockResolvedValue(null);
     tx.otpSession.count.mockResolvedValue(0);
     tx.otpSession.create.mockResolvedValue({ id: 'otp-1' });
@@ -135,6 +137,18 @@ describe('AuthOtpService hardening', () => {
     expect(sendOtpMock).toHaveBeenCalledTimes(1);
     expect(result).toHaveProperty('expiresAt');
     expect(result).toHaveProperty('devOtp');
+  });
+
+  it('acquires advisory lock before issuing OTP', async () => {
+    await service.sendOtp({
+      phone: '+66811111111',
+      email: 'employee@cl.local',
+    });
+
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(String((tx.$queryRaw as jest.Mock).mock.calls[0][0][0])).toContain(
+      'pg_advisory_xact_lock',
+    );
   });
 
   it('verifies OTP atomically and creates employee session', async () => {

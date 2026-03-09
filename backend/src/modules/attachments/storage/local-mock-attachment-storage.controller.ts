@@ -332,7 +332,7 @@ export class LocalMockAttachmentStorageController {
       });
     }
 
-    const ip = req.ip || req.socket.remoteAddress || '';
+    const ip = req.socket.remoteAddress || '';
 
     if (!this.isLoopbackIp(ip)) {
       throw new ForbiddenException({

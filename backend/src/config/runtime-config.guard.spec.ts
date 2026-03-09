@@ -22,6 +22,7 @@ describe('runtime-config guard', () => {
     corsOrigins: ['https://portal.construction-lines.local'],
     corsAllowCredentials: true,
     'runtimeConfig.strict': false,
+    'abuseProtection.store': 'postgres',
   };
 
   const makeConfig = (overrides?: Record<string, unknown>) => {
@@ -55,6 +56,18 @@ describe('runtime-config guard', () => {
     );
     expect(result.errors).toContain(
       'OTP_DELIVERY_PROVIDER cannot be console in production',
+    );
+  });
+
+  it('returns validation error when abuse protection store is not postgres in production mode', () => {
+    const result = validateProductionConfig(
+      makeConfig({
+        'abuseProtection.store': 'memory',
+      }),
+    );
+
+    expect(result.errors).toContain(
+      'ABUSE_PROTECTION_STORE must be postgres in production',
     );
   });
 

@@ -69,6 +69,13 @@ export function validateProductionConfig(
     errors.push('ADMIN_PASSWORD must not use default value');
   }
 
+  const abuseProtectionStore =
+    config.get<string>('abuseProtection.store') ?? 'memory';
+
+  if (abuseProtectionStore !== 'postgres') {
+    errors.push('ABUSE_PROTECTION_STORE must be postgres in production');
+  }
+
   const otpProvider = config.get<string>('otp.deliveryProvider') ?? 'console';
 
   if (otpProvider === 'console') {

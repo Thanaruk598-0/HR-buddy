@@ -142,6 +142,10 @@ export const envValidationSchema = Joi.object({
   ATTACHMENT_STORAGE_BASE_URL: Joi.string()
     .uri({ scheme: ['http', 'https'] })
     .default('http://localhost:3001/storage/mock'),
+  ATTACHMENT_LOCAL_MOCK_MAX_UPLOAD_BYTES: Joi.number()
+    .integer()
+    .min(1024)
+    .default(104857600),
   ATTACHMENT_STORAGE_WEBHOOK_URL: Joi.when('ATTACHMENT_STORAGE_PROVIDER', {
     is: 'webhook',
     then: Joi.string()

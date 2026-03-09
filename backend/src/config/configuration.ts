@@ -171,6 +171,12 @@ export default () => ({
       baseUrl:
         process.env.ATTACHMENT_STORAGE_BASE_URL ??
         'http://localhost:3001/storage/mock',
+      localMock: {
+        maxUploadBytes: parseInt(
+          process.env.ATTACHMENT_LOCAL_MOCK_MAX_UPLOAD_BYTES ?? '104857600',
+          10,
+        ),
+      },
       webhookUrl: process.env.ATTACHMENT_STORAGE_WEBHOOK_URL ?? null,
       webhookApiKey: process.env.ATTACHMENT_STORAGE_WEBHOOK_API_KEY ?? null,
       webhookSigningSecret:
