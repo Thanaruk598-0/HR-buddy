@@ -1,4 +1,11 @@
-import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Headers,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ReadinessReport, ReadinessService } from './health/readiness.service';
 import { PrismaService } from './prisma/prisma.service';
 
@@ -7,6 +14,7 @@ export class AppController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly readinessService: ReadinessService,
+    private readonly config: ConfigService,
   ) {}
 
   @Get('health')
@@ -15,14 +23,18 @@ export class AppController {
   }
 
   @Get('health/db')
-  async healthDb() {
+  async healthDb(@Headers('x-health-token') healthToken?: string) {
+    this.assertHealthAccess(healthToken);
+
     // Lightweight query to verify active DB connection
     await this.prisma.$queryRaw`SELECT 1`;
     return { ok: true, db: true };
   }
 
   @Get('health/ready')
-  async healthReady() {
+  async healthReady(@Headers('x-health-token') healthToken?: string) {
+    this.assertHealthAccess(healthToken);
+
     const report = await this.readinessService.getReport();
     const response = this.formatReadinessResponse(report);
 
@@ -47,5 +59,31 @@ export class AppController {
         skipped: check.skipped,
       })),
     };
+  }
+
+  private assertHealthAccess(healthTokenHeader?: string) {
+    if (process.env.NODE_ENV !== 'production') {
+      return;
+    }
+
+    const expectedToken =
+      this.config.get<string>('health.checkToken')?.trim() ?? '';
+
+    // Guard should already prevent boot without this, keep runtime defense-in-depth.
+    if (!expectedToken) {
+      throw new ServiceUnavailableException({
+        code: 'HEALTH_ENDPOINT_NOT_CONFIGURED',
+        message: 'Health endpoint token is not configured',
+      });
+    }
+
+    const providedToken = healthTokenHeader?.trim() ?? '';
+
+    if (providedToken !== expectedToken) {
+      throw new UnauthorizedException({
+        code: 'HEALTH_TOKEN_INVALID',
+        message: 'Invalid health endpoint token',
+      });
+    }
   }
 }

@@ -23,6 +23,7 @@ describe('runtime-config guard', () => {
     corsAllowCredentials: true,
     'runtimeConfig.strict': false,
     'abuseProtection.store': 'postgres',
+    'health.checkToken': 'health-check-token-1234567890',
   };
 
   const makeConfig = (overrides?: Record<string, unknown>) => {
@@ -59,6 +60,17 @@ describe('runtime-config guard', () => {
     );
   });
 
+  it('returns validation error when health check token is missing in production mode', () => {
+    const result = validateProductionConfig(
+      makeConfig({
+        'health.checkToken': '',
+      }),
+    );
+
+    expect(result.errors).toContain(
+      'HEALTH_CHECK_TOKEN must be set in production',
+    );
+  });
   it('returns validation error when abuse protection store is not postgres in production mode', () => {
     const result = validateProductionConfig(
       makeConfig({
@@ -163,6 +175,17 @@ describe('runtime-config guard', () => {
     ).not.toThrow();
   });
 
+  it('throws when NODE_ENV is missing and config is insecure (fail-closed)', () => {
+    delete process.env.NODE_ENV;
+
+    expect(() =>
+      assertRuntimeConfig(
+        makeConfig({
+          'otp.deliveryProvider': 'console',
+        }),
+      ),
+    ).toThrow('OTP_DELIVERY_PROVIDER cannot be console in production');
+  });
   it('throws in production when config is insecure', () => {
     process.env.NODE_ENV = 'production';
 

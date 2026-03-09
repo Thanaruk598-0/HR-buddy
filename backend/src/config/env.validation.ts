@@ -1,6 +1,7 @@
 import * as Joi from 'joi';
 
 export const envValidationSchema = Joi.object({
+  NODE_ENV: Joi.string().valid('development', 'test', 'production').optional(),
   PORT: Joi.number().default(3001),
   DATABASE_URL: Joi.string().required(),
   CORS_ORIGINS: Joi.string().default('http://localhost:3000'),
@@ -9,6 +10,7 @@ export const envValidationSchema = Joi.object({
   READINESS_STRICT_PROVIDERS: Joi.boolean().default(false),
   RUNTIME_CONFIG_STRICT: Joi.boolean().default(false),
   TRUST_PROXY: Joi.string().allow('').default(''),
+  HEALTH_CHECK_TOKEN: Joi.string().min(16).allow('').optional(),
   OTP_HASH_SECRET: Joi.string()
     .min(16)
     .default('dev-only-change-this-otp-hash-secret'),
@@ -215,6 +217,7 @@ export const envValidationSchema = Joi.object({
   RETENTION_EMPLOYEE_SESSIONS_DAYS: Joi.number().integer().min(1).default(7),
   RETENTION_NOTIFICATIONS_DAYS: Joi.number().integer().min(1).default(180),
   RETENTION_ACTIVITY_LOGS_DAYS: Joi.number().integer().min(1).default(365),
+  RETENTION_ADMIN_SESSIONS_DAYS: Joi.number().integer().min(1).default(30),
   PDPA_ANONYMIZE_MIN_CLOSED_DAYS: Joi.number().integer().min(0).default(30),
 
   MESSENGER_MAGIC_LINK_SECRET: Joi.string()

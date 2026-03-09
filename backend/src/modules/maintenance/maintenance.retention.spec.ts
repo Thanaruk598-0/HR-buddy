@@ -20,6 +20,9 @@ describe('MaintenanceService retention db lock', () => {
     requestActivityLog: {
       deleteMany: jest.fn(),
     },
+    adminSession: {
+      deleteMany: jest.fn(),
+    },
   };
 
   const configValues: Record<string, unknown> = {
@@ -29,6 +32,7 @@ describe('MaintenanceService retention db lock', () => {
     'retention.employeeSessionsDays': 7,
     'retention.notificationsDays': 180,
     'retention.activityLogsDays': 365,
+    'retention.adminSessionsDays': 30,
   };
 
   const config = {
@@ -45,6 +49,7 @@ describe('MaintenanceService retention db lock', () => {
     prisma.employeeAccessSession.deleteMany.mockResolvedValue({ count: 2 });
     prisma.notification.deleteMany.mockResolvedValue({ count: 3 });
     prisma.requestActivityLog.deleteMany.mockResolvedValue({ count: 4 });
+    prisma.adminSession.deleteMany.mockResolvedValue({ count: 1 });
 
     service = new MaintenanceService(prisma as never, config as never);
   });

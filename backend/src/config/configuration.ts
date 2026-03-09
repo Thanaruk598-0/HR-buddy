@@ -14,6 +14,9 @@ export default () => ({
   runtimeConfig: {
     strict: process.env.RUNTIME_CONFIG_STRICT === 'true',
   },
+  health: {
+    checkToken: process.env.HEALTH_CHECK_TOKEN ?? null,
+  },
   server: {
     trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
   },
@@ -226,6 +229,10 @@ export default () => ({
     ),
     activityLogsDays: parseInt(
       process.env.RETENTION_ACTIVITY_LOGS_DAYS ?? '365',
+      10,
+    ),
+    adminSessionsDays: parseInt(
+      process.env.RETENTION_ADMIN_SESSIONS_DAYS ?? '30',
       10,
     ),
   },

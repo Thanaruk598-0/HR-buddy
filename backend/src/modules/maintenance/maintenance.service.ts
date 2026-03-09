@@ -144,6 +144,10 @@ export class MaintenanceService implements OnModuleInit, OnModuleDestroy {
         this.retentionActivityLogsDays(),
         now,
       );
+      const adminSessionsCutoff = cutoffFromDays(
+        this.retentionAdminSessionsDays(),
+        now,
+      );
 
       const [otpSessions, employeeSessions, notifications, activityLogs] =
         await this.prisma.$transaction([
@@ -168,6 +172,19 @@ export class MaintenanceService implements OnModuleInit, OnModuleDestroy {
           }),
           this.prisma.requestActivityLog.deleteMany({
             where: { createdAt: { lt: activityLogsCutoff } },
+          }),
+          this.prisma.adminSession.deleteMany({
+            where: {
+              OR: [
+                { expiresAt: { lt: now } },
+                {
+                  revokedAt: {
+                    not: null,
+                    lt: adminSessionsCutoff,
+                  },
+                },
+              ],
+            },
           }),
         ]);
 
@@ -590,6 +607,10 @@ export class MaintenanceService implements OnModuleInit, OnModuleDestroy {
 
   private retentionActivityLogsDays() {
     return this.config.get<number>('retention.activityLogsDays') ?? 365;
+  }
+
+  private retentionAdminSessionsDays() {
+    return this.config.get<number>('retention.adminSessionsDays') ?? 30;
   }
 
   private pdpaAnonymizeMinClosedDays() {

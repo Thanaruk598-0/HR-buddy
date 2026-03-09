@@ -69,6 +69,14 @@ export function validateProductionConfig(
     errors.push('ADMIN_PASSWORD must not use default value');
   }
 
+  const healthCheckToken = (
+    config.get<string>('health.checkToken') ?? ''
+  ).trim();
+
+  if (!healthCheckToken) {
+    errors.push('HEALTH_CHECK_TOKEN must be set in production');
+  }
+
   const abuseProtectionStore =
     config.get<string>('abuseProtection.store') ?? 'memory';
 
@@ -227,6 +235,7 @@ export function validateProductionConfig(
       `CORS_ORIGINS must not include localhost origins in production: ${localOrigins.join(', ')}`,
     );
   }
+
   return { errors };
 }
 
@@ -256,11 +265,20 @@ function isLocalhostOrigin(origin: string) {
     return false;
   }
 }
+
 function shouldValidateRuntimeConfig(config: ConfigService) {
   const strict = config.get<boolean>('runtimeConfig.strict') ?? false;
-  return strict || isProduction();
-}
 
-function isProduction() {
-  return process.env.NODE_ENV === 'production';
+  if (strict) {
+    return true;
+  }
+
+  const nodeEnv = (process.env.NODE_ENV ?? '').trim().toLowerCase();
+
+  if (!nodeEnv) {
+    // Fail closed when NODE_ENV is missing to avoid skipping safety checks by mistake.
+    return true;
+  }
+
+  return nodeEnv === 'production';
 }
