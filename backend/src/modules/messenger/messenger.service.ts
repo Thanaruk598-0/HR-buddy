@@ -158,8 +158,9 @@ export class MessengerService {
 
     return this.prisma.$transaction(async (tx) => {
       const link = await this.getActiveLinkWithRequestOrThrow(tx, tokenHash);
-      this.assertNoMutationReplay(
-        link.lastUsedAt,
+      await this.assertNoMutationReplay(
+        tx,
+        link.requestId,
         ActivityAction.REPORT_PROBLEM,
       );
 
@@ -203,8 +204,9 @@ export class MessengerService {
 
     return this.prisma.$transaction(async (tx) => {
       const link = await this.getActiveLinkWithRequestOrThrow(tx, tokenHash);
-      this.assertNoMutationReplay(
-        link.lastUsedAt,
+      await this.assertNoMutationReplay(
+        tx,
+        link.requestId,
         ActivityAction.MESSENGER_PICKUP_EVENT,
       );
 
@@ -335,23 +337,51 @@ export class MessengerService {
     }
   }
 
-  private assertNoMutationReplay(lastUsedAt: Date | null, action: string) {
+  private async assertNoMutationReplay(
+    tx: Tx,
+    requestId: string,
+    action: ActivityAction,
+  ) {
     const replayWindowSeconds = this.mutationReplayWindowSeconds();
 
-    if (replayWindowSeconds <= 0 || !lastUsedAt) {
+    if (replayWindowSeconds <= 0) {
       return;
     }
 
-    const elapsedMs = Date.now() - lastUsedAt.getTime();
+    const now = Date.now();
+    const since = new Date(now - replayWindowSeconds * 1000);
+    const latestActivity = await tx.requestActivityLog.findFirst({
+      where: {
+        requestId,
+        action,
+        actorRole: ActorRole.MESSENGER,
+        createdAt: {
+          gte: since,
+        },
+      },
+      select: {
+        id: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
 
-    if (elapsedMs >= replayWindowSeconds * 1000) {
+    if (!latestActivity) {
       return;
     }
+
+    const elapsedMs = now - latestActivity.createdAt.getTime();
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil((replayWindowSeconds * 1000 - elapsedMs) / 1000),
+    );
 
     throw new BadRequestException({
       code: 'MAGIC_LINK_REPLAY_BLOCKED',
       message: `Repeated ${action} request is blocked. Please wait before retrying`,
-      retryAfterSeconds: replayWindowSeconds,
+      retryAfterSeconds,
     });
   }
 

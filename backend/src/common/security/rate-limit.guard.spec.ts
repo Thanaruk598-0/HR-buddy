@@ -117,16 +117,19 @@ describe('RateLimitGuard', () => {
     );
   });
 
-  it('does not include messenger token in rate limit key', async () => {
+  it('uses messenger token fingerprint in rate limit key', async () => {
     reflector.getAllAndOverride = jest.fn().mockReturnValue('messengerLink');
 
     const req = {
       body: {},
-      headers: { 'x-forwarded-for': '198.51.100.25' },
+      headers: {
+        'x-forwarded-for': '198.51.100.25',
+        'x-messenger-token': 'sensitive-token',
+      },
       method: 'PATCH',
       ip: '10.1.1.10',
       ips: ['203.0.113.11', '10.1.1.10'],
-      path: '/messenger/link/sensitive-token/status',
+      path: '/messenger/link/status',
       socket: { remoteAddress: '10.1.1.10' },
     } as never;
 
@@ -150,7 +153,12 @@ describe('RateLimitGuard', () => {
     expect(allowed).toBe(true);
     expect(abuseProtectionService.consume).toHaveBeenCalledWith(
       expect.objectContaining({
-        key: '203.0.113.11:method=PATCH:messenger-link',
+        key: '203.0.113.11:method=PATCH:token=a83d19d08d3c3f53:messenger-link',
+      }),
+    );
+    expect(abuseProtectionService.consume).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: expect.stringContaining('sensitive-token'),
       }),
     );
   });

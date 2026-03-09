@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
+import { createHash } from 'crypto';
 import { Request, Response } from 'express';
 import { AbuseProtectionService } from './abuse-protection.service';
 import {
@@ -104,7 +105,7 @@ export class RateLimitGuard implements CanActivate {
 
   private resolveClientKey(policy: RateLimitPolicyName, req: Request) {
     const ip = this.clientIp(req);
-    const body = (req.body ?? {}) as Record<string, unknown>;
+    const body = this.bodyRecord(req.body);
 
     switch (policy) {
       case 'otpSend': {
@@ -125,8 +126,13 @@ export class RateLimitGuard implements CanActivate {
         const phone = this.normalizeText(body.phone);
         return `${ip}:phone=${phone ?? '-'}:path=${req.path}`;
       }
-      case 'messengerLink':
-        return `${ip}:method=${req.method}:messenger-link`;
+      case 'messengerLink': {
+        const messengerToken = this.extractMessengerToken(req);
+        const tokenFingerprint = messengerToken
+          ? this.hashForRateLimitKey(messengerToken)
+          : '-';
+        return `${ip}:method=${req.method}:token=${tokenFingerprint}:messenger-link`;
+      }
       default:
         return ip;
     }
@@ -147,5 +153,53 @@ export class RateLimitGuard implements CanActivate {
 
     const normalized = value.trim();
     return normalized.length > 0 ? normalized : null;
+  }
+
+  private extractMessengerToken(req: Request) {
+    const headers = req.headers as Record<string, unknown>;
+    const authorization = this.firstHeaderValue(headers['authorization']);
+
+    if (authorization?.startsWith('Bearer ')) {
+      const token = authorization.slice('Bearer '.length).trim();
+
+      if (token) {
+        return token;
+      }
+    }
+
+    const headerToken = this.firstHeaderValue(headers['x-messenger-token']);
+
+    if (!headerToken) {
+      return null;
+    }
+
+    const normalized = headerToken.trim();
+    return normalized || null;
+  }
+
+  private firstHeaderValue(value: unknown): string | null {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      const values: unknown[] = value;
+      const first = values[0];
+      return typeof first === 'string' ? first : null;
+    }
+
+    return null;
+  }
+
+  private hashForRateLimitKey(value: string) {
+    return createHash('sha256').update(value).digest('hex').slice(0, 16);
+  }
+
+  private bodyRecord(value: unknown): Record<string, unknown> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+
+    return value as Record<string, unknown>;
   }
 }

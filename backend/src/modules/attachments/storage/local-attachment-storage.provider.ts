@@ -6,12 +6,14 @@ import {
   AttachmentStorageProvider,
   AttachmentUploadPresign,
 } from './attachment-storage.interface';
+import { LocalMockAttachmentStorageService } from './local-mock-attachment-storage.service';
 
 @Injectable()
 export class LocalAttachmentStorageProvider implements AttachmentStorageProvider {
-  private readonly issuedUploads = new Map<string, AttachmentObjectMetadata>();
-
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly localMockStorageService: LocalMockAttachmentStorageService,
+  ) {}
 
   async createUploadPresign(params: {
     storageKey: string;
@@ -20,11 +22,6 @@ export class LocalAttachmentStorageProvider implements AttachmentStorageProvider
     expiresAt: Date;
   }): Promise<AttachmentUploadPresign> {
     const base = this.baseUrl();
-
-    this.issuedUploads.set(params.storageKey, {
-      contentType: params.mimeType,
-      contentLength: params.fileSize,
-    });
 
     return {
       url: `${base}/upload/${encodeURIComponent(params.storageKey)}?expiresAt=${encodeURIComponent(params.expiresAt.toISOString())}`,
@@ -53,7 +50,9 @@ export class LocalAttachmentStorageProvider implements AttachmentStorageProvider
   async getObjectMetadata(params: {
     storageKey: string;
   }): Promise<AttachmentObjectMetadata | null> {
-    return this.issuedUploads.get(params.storageKey) ?? null;
+    return this.localMockStorageService.getObjectMetadata({
+      storageKey: params.storageKey,
+    });
   }
 
   private baseUrl() {

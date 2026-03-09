@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { RequestStatus, RequestType } from '@prisma/client';
+import { ActivityAction, RequestStatus, RequestType } from '@prisma/client';
 import { MessengerService } from './messenger.service';
 
 describe('MessengerService replay guard', () => {
@@ -11,6 +11,7 @@ describe('MessengerService replay guard', () => {
       updateMany: jest.fn(),
     },
     requestActivityLog: {
+      findFirst: jest.fn(),
       create: jest.fn(),
     },
     request: {
@@ -70,6 +71,7 @@ describe('MessengerService replay guard', () => {
 
     tx.magicLink.findUnique.mockResolvedValue(baseLink);
     tx.magicLink.update.mockResolvedValue({ id: 'link-1' });
+    tx.requestActivityLog.findFirst.mockResolvedValue(null);
     tx.requestActivityLog.create.mockResolvedValue({ id: 'log-1' });
     tx.request.update.mockResolvedValue({ id: 'req-1' });
     notificationsService.notifyAdminProblemReported.mockResolvedValue(
@@ -92,10 +94,33 @@ describe('MessengerService replay guard', () => {
     }
   };
 
-  it('blocks reportProblem when token was used too recently', async () => {
+  it('allows first reportProblem right after link access when no prior mutation exists', async () => {
     tx.magicLink.findUnique.mockResolvedValue({
       ...baseLink,
-      lastUsedAt: new Date(Date.now() - 2_000),
+      lastUsedAt: new Date(Date.now() - 1_000),
+    });
+
+    const result = await service.reportProblem('token-abc', {
+      note: 'Cannot contact receiver',
+    });
+
+    expect(result).toEqual({ ok: true });
+    expect(tx.requestActivityLog.findFirst).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        requestId: 'req-1',
+        action: ActivityAction.REPORT_PROBLEM,
+      }),
+      select: expect.any(Object),
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  });
+
+  it('blocks reportProblem when recent same action already exists', async () => {
+    tx.requestActivityLog.findFirst.mockResolvedValue({
+      id: 'log-1',
+      createdAt: new Date(Date.now() - 2_000),
     });
 
     await expectErrorCode(
@@ -106,32 +131,17 @@ describe('MessengerService replay guard', () => {
     expect(tx.requestActivityLog.create).not.toHaveBeenCalled();
   });
 
-  it('allows reportProblem when replay window has passed', async () => {
+  it('blocks pickupEvent when recent same action already exists', async () => {
     tx.magicLink.findUnique.mockResolvedValue({
       ...baseLink,
-      lastUsedAt: new Date(Date.now() - 10_000),
-    });
-
-    const result = await service.reportProblem('token-abc', {
-      note: 'Cannot contact receiver',
-    });
-
-    expect(result).toEqual({ ok: true });
-    expect(tx.requestActivityLog.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        action: 'REPORT_PROBLEM',
-      }),
-    });
-  });
-
-  it('blocks pickupEvent when token was used too recently', async () => {
-    tx.magicLink.findUnique.mockResolvedValue({
-      ...baseLink,
-      lastUsedAt: new Date(Date.now() - 1_000),
       request: {
         ...baseLink.request,
         status: RequestStatus.IN_TRANSIT,
       },
+    });
+    tx.requestActivityLog.findFirst.mockResolvedValue({
+      id: 'log-2',
+      createdAt: new Date(Date.now() - 1_000),
     });
 
     await expectErrorCode(
