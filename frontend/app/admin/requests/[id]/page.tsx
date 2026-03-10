@@ -124,6 +124,8 @@ function AdminRequestDetailContent() {
   const [pickupNote, setPickupNote] = useState("");
   const [digitalAttachmentId, setDigitalAttachmentId] = useState("");
   const [submittingStatus, setSubmittingStatus] = useState(false);
+  const [messengerMagicLink, setMessengerMagicLink] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [magicLinkCopyState, setMagicLinkCopyState] = useState<"idle" | "copied" | "failed">("idle");
 
   const [uploading, setUploading] = useState(false);
   const [uploadFileKind, setUploadFileKind] = useState<FileKind>("DOCUMENT");
@@ -218,13 +220,24 @@ function AdminRequestDetailContent() {
     setErrorMessage(null);
 
     try {
-      await updateAdminRequestStatus(detail.id, {
+      const result = await updateAdminRequestStatus(detail.id, {
         status: targetStatus,
         operatorId,
         note: note.trim() || undefined,
         pickupNote: pickupNote.trim() || undefined,
         digitalFileAttachmentId: digitalAttachmentId || undefined,
       });
+
+      if (result.magicLink?.url) {
+        setMessengerMagicLink({
+          url: result.magicLink.url,
+          expiresAt: result.magicLink.expiresAt,
+        });
+        setMagicLinkCopyState("idle");
+      } else if (detail.type === "MESSENGER") {
+        setMessengerMagicLink(null);
+        setMagicLinkCopyState("idle");
+      }
 
       setNote("");
       await loadData();
@@ -236,6 +249,19 @@ function AdminRequestDetailContent() {
       }
     } finally {
       setSubmittingStatus(false);
+    }
+  };
+
+  const handleCopyMagicLink = async () => {
+    if (!messengerMagicLink?.url) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(messengerMagicLink.url);
+      setMagicLinkCopyState("copied");
+    } catch {
+      setMagicLinkCopyState("failed");
     }
   };
 
@@ -459,6 +485,34 @@ function AdminRequestDetailContent() {
                 {submittingStatus ? "Updating..." : "Update status"}
               </Button>
             </form>
+
+            {messengerMagicLink ? (
+              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                <p className="font-semibold">Messenger magic link generated</p>
+                <p className="mt-1 break-all">{messengerMagicLink.url}</p>
+                <p className="mt-1 text-xs text-emerald-800">Expires: {formatDateTime(messengerMagicLink.expiresAt)}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    className="bg-white text-emerald-900 ring-1 ring-emerald-300 hover:bg-emerald-100"
+                    onClick={() => void handleCopyMagicLink()}
+                  >
+                    {magicLinkCopyState === "copied" ? "Copied" : "Copy link"}
+                  </Button>
+                  <a
+                    href={messengerMagicLink.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+                  >
+                    Open link
+                  </a>
+                </div>
+                {magicLinkCopyState === "failed" ? (
+                  <p className="mt-2 text-xs text-rose-700">Copy failed. Please copy link manually.</p>
+                ) : null}
+              </div>
+            ) : null}
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -577,3 +631,4 @@ function AdminRequestDetailContent() {
     </main>
   );
 }
+
