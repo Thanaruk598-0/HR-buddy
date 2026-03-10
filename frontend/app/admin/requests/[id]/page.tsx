@@ -7,6 +7,13 @@ import { RouteGuard } from "@/components/guards/route-guard";
 import { Button, SelectField, TextField, TextareaField } from "@/components/ui/form-controls";
 import { ApiError } from "@/lib/api/client";
 import {
+  getAcceptMimeTypes,
+  getAttachmentPolicySummary,
+  inferFileKindFromMimeType,
+  resolveUploadMimeType,
+  validateAttachmentCandidate,
+} from "@/lib/attachments/attachment-policy";
+import {
   completeAdminAttachmentUpload,
   getAdminAttachmentDownloadUrl,
   getAdminRequestDetail,
@@ -91,36 +98,6 @@ function formatFileSize(bytes: number) {
   }
 
   return `${(kb / 1024).toFixed(1)} MB`;
-}
-
-function fileKindFromMime(mimeType: string): FileKind {
-  if (mimeType.startsWith("image/")) {
-    return "IMAGE";
-  }
-
-  if (mimeType.startsWith("video/")) {
-    return "VIDEO";
-  }
-
-  return "DOCUMENT";
-}
-
-function guessMimeType(fileName: string): string {
-  const lower = fileName.toLowerCase();
-
-  if (lower.endsWith(".pdf")) return "application/pdf";
-  if (lower.endsWith(".doc")) return "application/msword";
-  if (lower.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  if (lower.endsWith(".xls")) return "application/vnd.ms-excel";
-  if (lower.endsWith(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-  if (lower.endsWith(".txt")) return "text/plain";
-  if (lower.endsWith(".mp4")) return "video/mp4";
-  if (lower.endsWith(".mov")) return "video/quicktime";
-  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-  if (lower.endsWith(".png")) return "image/png";
-  if (lower.endsWith(".webp")) return "image/webp";
-
-  return "application/octet-stream";
 }
 
 export default function Page() {
@@ -268,10 +245,9 @@ function AdminRequestDetailContent() {
       return;
     }
 
-    const inferredMimeType = uploadFile.type || guessMimeType(uploadFile.name);
-
-    if (!inferredMimeType || inferredMimeType === "application/octet-stream") {
-      setErrorMessage("Unsupported file type. Please choose a supported format.");
+    const validation = validateAttachmentCandidate(uploadFile, uploadFileKind);
+    if (!validation.ok) {
+      setErrorMessage(validation.message);
       return;
     }
 
@@ -279,12 +255,12 @@ function AdminRequestDetailContent() {
     setErrorMessage(null);
 
     try {
-      const resolvedFileKind = uploadFileKind || fileKindFromMime(inferredMimeType);
+      const resolvedFileKind = uploadFileKind;
 
       const ticket = await issueAdminAttachmentUploadTicket(detail.id, {
         fileKind: resolvedFileKind,
         fileName: uploadFile.name,
-        mimeType: inferredMimeType,
+        mimeType: validation.mimeType,
         fileSize: uploadFile.size,
       });
 
@@ -509,16 +485,21 @@ function AdminRequestDetailContent() {
                   id="uploadFile"
                   type="file"
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                  accept={getAcceptMimeTypes(uploadFileKind)}
                   onChange={(event) => {
                     const file = event.target.files?.[0] || null;
                     setUploadFile(file);
-                    if (file?.type) {
-                      setUploadFileKind(fileKindFromMime(file.type));
+                    if (file) {
+                      const inferredKind = inferFileKindFromMimeType(resolveUploadMimeType(file) ?? "");
+                      if (inferredKind) {
+                        setUploadFileKind(inferredKind);
+                      }
                     }
                   }}
                 />
               </div>
             </div>
+            <p className="mt-2 text-xs text-slate-500">{getAttachmentPolicySummary(uploadFileKind)}</p>
 
             {uploadFile ? (
               <p className="mt-3 text-sm text-slate-700">
