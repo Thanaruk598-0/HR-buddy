@@ -25,6 +25,7 @@ SLA runtime logic is intentionally out of v1 scope. SLA database tables may stil
 - Environment variables prepared from `.env.example`
 - App host URL and CORS origin finalized
 - OTP and attachment providers chosen (`console` or `webhook`)
+- Legal retention baseline configured (activity/audit logs >= 90 days)
 
 ## 3) Environment Setup
 
@@ -44,6 +45,7 @@ Copy-Item .env.example .env
 - `MESSENGER_MAGIC_LINK_SECRET`
 - `ADMIN_SESSION_SECRET`
 - `ADMIN_PASSWORD`
+- `RETENTION_ACTIVITY_LOGS_DAYS` (must be `>= 90` for production)
 
 3. If using webhook providers, set:
 
@@ -183,4 +185,12 @@ Capture and store:
 - Smoke test results with timestamp
 - Operator name who performed deployment
 
+## 11) Legal Hold (Computer Traffic Data)
 
+If an official request/order is received from competent authority:
+
+1. Preserve relevant traffic/audit logs immediately (do not purge affected scope).
+2. Record request metadata (request number, officer, date/time, requested range).
+3. Preserve logs for requested period, up to 2 years when specified by order.
+4. Record chain-of-custody and operator actions in incident/change log.
+5. Resume normal retention only after legal hold release is approved.

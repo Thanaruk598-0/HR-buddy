@@ -27,6 +27,7 @@ describe('runtime-config guard', () => {
     'abuseProtection.store': 'postgres',
     'abuseProtection.postgres.failClosedInProduction': true,
     'health.checkToken': 'health-check-token-1234567890',
+    'retention.activityLogsDays': 365,
   };
 
   const makeConfig = (overrides?: Record<string, unknown>) => {
@@ -63,6 +64,17 @@ describe('runtime-config guard', () => {
     );
   });
 
+  it('returns validation error when activity log retention is below legal minimum in production mode', () => {
+    const result = validateProductionConfig(
+      makeConfig({
+        'retention.activityLogsDays': 30,
+      }),
+    );
+
+    expect(result.errors).toContain(
+      'RETENTION_ACTIVITY_LOGS_DAYS must be at least 90 in production',
+    );
+  });
   it('returns validation error when health check token is missing in production mode', () => {
     const result = validateProductionConfig(
       makeConfig({

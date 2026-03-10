@@ -44,6 +44,7 @@ function checkRequiredFiles(): CheckResult {
     join(backendRoot, 'docs', 'deploy-runbook.md'),
     join(backendRoot, 'docs', 'operations-checklist.md'),
     join(backendRoot, 'docs', 'error-contract.md'),
+    join(backendRoot, 'docs', 'legal-compliance-th.md'),
     join(backendRoot, 'docs', 'backend-v1-freeze-checklist.md'),
   ];
 

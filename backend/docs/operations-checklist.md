@@ -31,10 +31,12 @@ Use this checklist to operate HR-Buddy backend in day-to-day production support.
 ## 4) Data Retention and Privacy
 
 - Keep retention settings aligned with company PDPA policy
+- Confirm `RETENTION_ACTIVITY_LOGS_DAYS` is at least 90 in production
 - Confirm periodic retention purge is active when required
 - Trigger manual purge as needed:
   - `POST /admin/maintenance/retention/run`
 - Verify purge result counts and log outcomes
+- Maintain legal-hold procedure for authority requests (preserve requested logs up to 2 years)
 
 ## 5) Backup and Recovery
 
@@ -68,4 +70,3 @@ Before shipping backend changes:
 - New env keys documented in `.env.example`
 - Error code changes documented in `docs/error-contract.md`
 - Runbook updated when operational behavior changes
-

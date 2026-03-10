@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 
 const DEFAULT_SECRET_MARKER = 'dev-only-change-this';
 const DEFAULT_ADMIN_PASSWORD = 'admin12345';
+const MIN_TRAFFIC_LOG_RETENTION_DAYS = 90;
 
 type ValidationResult = {
   errors: string[];
@@ -251,6 +252,17 @@ export function validateProductionConfig(
   if (localOrigins.length > 0) {
     errors.push(
       `CORS_ORIGINS must not include localhost origins in production: ${localOrigins.join(', ')}`,
+    );
+  }
+
+  const retentionActivityLogsDays =
+    config.get<number>('retention.activityLogsDays') ?? 365;
+
+  if (retentionActivityLogsDays < MIN_TRAFFIC_LOG_RETENTION_DAYS) {
+    errors.push(
+      'RETENTION_ACTIVITY_LOGS_DAYS must be at least ' +
+        MIN_TRAFFIC_LOG_RETENTION_DAYS +
+        ' in production',
     );
   }
 
