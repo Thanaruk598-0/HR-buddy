@@ -229,6 +229,8 @@ async function withSelfHostedServer(mode, work) {
 
   try {
     const start = Date.now();
+    let isReady = false;
+
     while (Date.now() - start < serverReadyTimeoutMs) {
       if (spawnError) {
         throw spawnError;
@@ -241,8 +243,8 @@ async function withSelfHostedServer(mode, work) {
       try {
         const response = await fetchWithTimeout(`${baseUrl}/`, 4000);
         if (response.status >= 200 && response.status < 500) {
-          await work();
-          return;
+          isReady = true;
+          break;
         }
       } catch (error) {
         lastError = error;
@@ -251,8 +253,12 @@ async function withSelfHostedServer(mode, work) {
       await wait(800);
     }
 
-    const message = lastError instanceof Error ? lastError.message : "unknown error";
-    throw new Error(`Frontend server did not become ready within ${serverReadyTimeoutMs}ms (${message})`);
+    if (!isReady) {
+      const message = lastError instanceof Error ? lastError.message : "unknown error";
+      throw new Error(`Frontend server did not become ready within ${serverReadyTimeoutMs}ms (${message})`);
+    }
+
+    await work();
   } catch (error) {
     if (outputTail.length > 0) {
       const tail = outputTail.slice(-8).join(" | ");
@@ -285,4 +291,3 @@ main().catch((error) => {
 
   process.exit(1);
 });
-

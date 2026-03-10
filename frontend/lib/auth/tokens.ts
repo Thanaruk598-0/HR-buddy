@@ -6,8 +6,34 @@ const TOKEN_KEYS: Record<TokenType, string> = {
   messenger: "hrbuddy.messenger.sessionToken",
 };
 
+const TOKEN_CHANGED_EVENT = "hrbuddy:auth-token-changed";
+
 function canUseBrowserStorage() {
   return typeof window !== "undefined";
+}
+
+function resolveTokenStorage() {
+  if (!canUseBrowserStorage()) {
+    return null;
+  }
+
+  return window.sessionStorage;
+}
+
+function emitTokenChanged(type: TokenType) {
+  if (!canUseBrowserStorage()) {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(TOKEN_CHANGED_EVENT, {
+      detail: { type },
+    }),
+  );
+}
+
+export function getTokenChangedEventName() {
+  return TOKEN_CHANGED_EVENT;
 }
 
 export function getTokenStorageKey(type: TokenType) {
@@ -15,25 +41,30 @@ export function getTokenStorageKey(type: TokenType) {
 }
 
 export function getAuthToken(type: TokenType): string | null {
-  if (!canUseBrowserStorage()) {
+  const storage = resolveTokenStorage();
+  if (!storage) {
     return null;
   }
 
-  return window.localStorage.getItem(TOKEN_KEYS[type]);
+  return storage.getItem(TOKEN_KEYS[type]);
 }
 
 export function setAuthToken(type: TokenType, token: string) {
-  if (!canUseBrowserStorage()) {
+  const storage = resolveTokenStorage();
+  if (!storage) {
     return;
   }
 
-  window.localStorage.setItem(TOKEN_KEYS[type], token);
+  storage.setItem(TOKEN_KEYS[type], token);
+  emitTokenChanged(type);
 }
 
 export function clearAuthToken(type: TokenType) {
-  if (!canUseBrowserStorage()) {
+  const storage = resolveTokenStorage();
+  if (!storage) {
     return;
   }
 
-  window.localStorage.removeItem(TOKEN_KEYS[type]);
+  storage.removeItem(TOKEN_KEYS[type]);
+  emitTokenChanged(type);
 }

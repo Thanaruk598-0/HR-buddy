@@ -42,11 +42,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run frontend release gate
+      - name: Start mock API health endpoint
+        run: |
+          node scripts/mock-api-health.mjs > /tmp/frontend-mock-api.log 2>&1 &
+          echo $! > /tmp/frontend-mock-api.pid
+          sleep 1
+
+      - name: Run frontend release gate (strict)
         env:
           NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:3001
-        run: npm run release:gate -- --skip-smoke
+        run: npm run release:gate:strict
 
-      - name: Run frontend smoke checks (self-host)
-        run: npm run smoke:self-host:prod
-
+      - name: Stop mock API health endpoint
+        if: always()
+        run: |
+          if [ -f /tmp/frontend-mock-api.pid ]; then
+            kill $(cat /tmp/frontend-mock-api.pid) || true
+          fi
+          if [ -f /tmp/frontend-mock-api.log ]; then
+            tail -n 40 /tmp/frontend-mock-api.log || true
+          fi
