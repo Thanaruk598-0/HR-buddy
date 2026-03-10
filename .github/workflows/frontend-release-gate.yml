@@ -24,7 +24,21 @@ jobs:
   release-gate:
     name: Release Gate
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: hrbuddy
+          POSTGRES_PASSWORD: hrbuddy_pass
+          POSTGRES_DB: hr_buddy
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U hrbuddy -d hr_buddy"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: frontend
@@ -37,28 +51,65 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install backend dependencies
+        working-directory: backend
         run: npm ci
 
-      - name: Start mock API health endpoint
+      - name: Prepare backend database
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://hrbuddy:hrbuddy_pass@127.0.0.1:5433/hr_buddy?schema=public
         run: |
-          node scripts/mock-api-health.mjs > /tmp/frontend-mock-api.log 2>&1 &
-          echo $! > /tmp/frontend-mock-api.pid
-          sleep 1
+          npx prisma generate
+          npx prisma migrate deploy
+
+      - name: Start backend API
+        working-directory: backend
+        env:
+          NODE_ENV: development
+          RUNTIME_ENV: development
+          PORT: 3001
+          DATABASE_URL: postgresql://hrbuddy:hrbuddy_pass@127.0.0.1:5433/hr_buddy?schema=public
+          CORS_ORIGINS: http://127.0.0.1:3000
+          CORS_ALLOW_CREDENTIALS: true
+          OTP_DELIVERY_PROVIDER: console
+          ATTACHMENT_STORAGE_PROVIDER: local
+          ADMIN_USERNAME: admin
+          ADMIN_PASSWORD: admin12345
+        run: |
+          npm run start > /tmp/frontend-backend.log 2>&1 &
+          echo $! > /tmp/frontend-backend.pid
+
+      - name: Wait for backend health
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3001/health > /dev/null; then
+              echo "Backend is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend failed to become ready" >&2
+          exit 1
+
+      - name: Install frontend dependencies
+        run: npm ci
 
       - name: Run frontend release gate (strict)
         env:
           NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:3001
         run: npm run release:gate:strict
 
-      - name: Stop mock API health endpoint
+      - name: Stop backend API
         if: always()
         run: |
-          if [ -f /tmp/frontend-mock-api.pid ]; then
-            kill $(cat /tmp/frontend-mock-api.pid) || true
+          if [ -f /tmp/frontend-backend.pid ]; then
+            kill $(cat /tmp/frontend-backend.pid) || true
           fi
-          if [ -f /tmp/frontend-mock-api.log ]; then
-            tail -n 40 /tmp/frontend-mock-api.log || true
+          if [ -f /tmp/frontend-backend.log ]; then
+            tail -n 60 /tmp/frontend-backend.log || true
           fi

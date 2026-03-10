@@ -20,10 +20,22 @@ async function request(path, options = {}) {
     signal: AbortSignal.timeout(requestTimeoutMs),
   });
 
-  const text = await response.text();
+  let json = null;
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      json = await response.json();
+    } catch {
+      json = null;
+    }
+  } else {
+    await response.text();
+  }
+
   return {
     status: response.status,
-    text,
+    json,
   };
 }
 
@@ -35,6 +47,12 @@ function assertExpectedStatus(label, actual, expected) {
   throw new Error(`${label} returned unexpected status ${actual}. Expected one of: ${expected.join(", ")}`);
 }
 
+function assert(condition, message) {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
+
 async function main() {
   log(`Running API contract checks against ${apiBaseUrl}`);
 
@@ -43,6 +61,25 @@ async function main() {
       label: "GET /health",
       run: () => request("/health"),
       expectedStatus: [200],
+      validate: (result) => {
+        assert(result.json && typeof result.json === "object", "GET /health must return JSON object");
+      },
+    },
+    {
+      label: "GET /reference/departments?isActive=true",
+      run: () => request("/reference/departments?isActive=true"),
+      expectedStatus: [200],
+      validate: (result) => {
+        assert(result.json && Array.isArray(result.json.items), "Reference departments response must contain items array");
+      },
+    },
+    {
+      label: "GET /geo/provinces",
+      run: () => request("/geo/provinces"),
+      expectedStatus: [200],
+      validate: (result) => {
+        assert(Array.isArray(result.json), "Geo provinces response must be an array");
+      },
     },
     {
       label: "GET /admin/auth/me without token",
@@ -83,6 +120,9 @@ async function main() {
   for (const check of checks) {
     const result = await check.run();
     assertExpectedStatus(check.label, result.status, check.expectedStatus);
+    if (check.validate) {
+      check.validate(result);
+    }
     log(`ok ${check.label} (${result.status})`);
   }
 

@@ -8,12 +8,23 @@ const TOKEN_KEYS: Record<TokenType, string> = {
 
 const TOKEN_CHANGED_EVENT = "hrbuddy:auth-token-changed";
 
+type TokenStorageMode = "memory" | "session";
+
+const configuredStorageMode =
+  (process.env.NEXT_PUBLIC_AUTH_TOKEN_STORAGE?.toLowerCase() as TokenStorageMode | undefined) ?? "memory";
+
+const tokenCache: Partial<Record<TokenType, string>> = {};
+
 function canUseBrowserStorage() {
   return typeof window !== "undefined";
 }
 
+function getStorageMode(): TokenStorageMode {
+  return configuredStorageMode === "session" ? "session" : "memory";
+}
+
 function resolveTokenStorage() {
-  if (!canUseBrowserStorage()) {
+  if (!canUseBrowserStorage() || getStorageMode() !== "session") {
     return null;
   }
 
@@ -41,30 +52,42 @@ export function getTokenStorageKey(type: TokenType) {
 }
 
 export function getAuthToken(type: TokenType): string | null {
+  const fromCache = tokenCache[type];
+  if (fromCache) {
+    return fromCache;
+  }
+
   const storage = resolveTokenStorage();
   if (!storage) {
     return null;
   }
 
-  return storage.getItem(TOKEN_KEYS[type]);
+  const persisted = storage.getItem(TOKEN_KEYS[type]);
+  if (persisted) {
+    tokenCache[type] = persisted;
+  }
+
+  return persisted;
 }
 
 export function setAuthToken(type: TokenType, token: string) {
+  tokenCache[type] = token;
+
   const storage = resolveTokenStorage();
-  if (!storage) {
-    return;
+  if (storage) {
+    storage.setItem(TOKEN_KEYS[type], token);
   }
 
-  storage.setItem(TOKEN_KEYS[type], token);
   emitTokenChanged(type);
 }
 
 export function clearAuthToken(type: TokenType) {
+  delete tokenCache[type];
+
   const storage = resolveTokenStorage();
-  if (!storage) {
-    return;
+  if (storage) {
+    storage.removeItem(TOKEN_KEYS[type]);
   }
 
-  storage.removeItem(TOKEN_KEYS[type]);
   emitTokenChanged(type);
 }

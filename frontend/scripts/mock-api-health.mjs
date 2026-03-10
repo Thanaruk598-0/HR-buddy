@@ -23,6 +23,16 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (method === "GET" && url.startsWith("/reference/departments")) {
+    sendJson(res, 200, { items: [] });
+    return;
+  }
+
+  if (method === "GET" && url === "/geo/provinces") {
+    sendJson(res, 200, []);
+    return;
+  }
+
   if (method === "GET" && url === "/admin/auth/me") {
     sendJson(res, 401, { statusCode: 401, message: "Unauthorized" });
     return;
