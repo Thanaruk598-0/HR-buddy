@@ -22,7 +22,10 @@ describe('runtime-config guard', () => {
     corsOrigins: ['https://portal.construction-lines.local'],
     corsAllowCredentials: true,
     'runtimeConfig.strict': false,
+    runtimeEnv: 'production',
+    nodeEnv: 'production',
     'abuseProtection.store': 'postgres',
+    'abuseProtection.postgres.failClosedInProduction': true,
     'health.checkToken': 'health-check-token-1234567890',
   };
 
@@ -80,6 +83,18 @@ describe('runtime-config guard', () => {
 
     expect(result.errors).toContain(
       'ABUSE_PROTECTION_STORE must be postgres in production',
+    );
+  });
+
+  it('returns validation error when abuse protection fail-closed flag is disabled in production mode', () => {
+    const result = validateProductionConfig(
+      makeConfig({
+        'abuseProtection.postgres.failClosedInProduction': false,
+      }),
+    );
+
+    expect(result.errors).toContain(
+      'ABUSE_PROTECTION_POSTGRES_FAIL_CLOSED_IN_PRODUCTION must be true in production',
     );
   });
 
@@ -161,31 +176,59 @@ describe('runtime-config guard', () => {
     );
   });
 
-  it('does not throw outside production', () => {
+  it('does not throw outside production for development-like local config', () => {
     process.env.NODE_ENV = 'development';
 
     expect(() =>
       assertRuntimeConfig(
         makeConfig({
+          runtimeEnv: 'development',
+          nodeEnv: 'development',
           otpHashSecret: 'dev-only-change-this-otp-hash-secret',
           'adminAuth.password': 'admin12345',
           'otp.deliveryProvider': 'console',
+          'attachments.storage.provider': 'local',
+          'abuseProtection.store': 'memory',
+          'health.checkToken': '',
+          corsOrigins: ['http://localhost:3000'],
         }),
       ),
     ).not.toThrow();
   });
 
-  it('throws when NODE_ENV is missing and config is insecure (fail-closed)', () => {
+  it('throws when runtime env values are missing and config is insecure (fail-closed)', () => {
     delete process.env.NODE_ENV;
 
     expect(() =>
       assertRuntimeConfig(
         makeConfig({
+          runtimeEnv: '',
+          nodeEnv: '',
           'otp.deliveryProvider': 'console',
+          'attachments.storage.provider': 'local',
+          'abuseProtection.store': 'memory',
+          'health.checkToken': '',
+          corsOrigins: ['http://localhost:3000'],
         }),
       ),
     ).toThrow('OTP_DELIVERY_PROVIDER cannot be console in production');
   });
+
+  it('throws when production-like providers are configured with non-production env', () => {
+    process.env.NODE_ENV = 'development';
+
+    expect(() =>
+      assertRuntimeConfig(
+        makeConfig({
+          runtimeEnv: 'development',
+          nodeEnv: 'development',
+        }),
+      ),
+    ).toThrow(
+      'RUNTIME_ENV must be production for production-like configuration',
+    );
+  });
+
   it('throws in production when config is insecure', () => {
     process.env.NODE_ENV = 'production';
 

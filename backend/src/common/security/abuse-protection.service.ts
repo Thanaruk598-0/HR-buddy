@@ -89,7 +89,7 @@ export class AbuseProtectionService {
     return (
       this.config.get<boolean>(
         'abuseProtection.postgres.failClosedInProduction',
-      ) ?? false
+      ) ?? true
     );
   }
 

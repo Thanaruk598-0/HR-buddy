@@ -84,8 +84,8 @@ export default () => ({
         10,
       ),
       failClosedInProduction:
-        process.env.ABUSE_PROTECTION_POSTGRES_FAIL_CLOSED_IN_PRODUCTION ===
-        'true',
+        (process.env.ABUSE_PROTECTION_POSTGRES_FAIL_CLOSED_IN_PRODUCTION ??
+          'true') === 'true',
     },
     maxEntries: parseInt(
       process.env.ABUSE_PROTECTION_MAX_ENTRIES ?? '50000',

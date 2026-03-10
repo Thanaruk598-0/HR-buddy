@@ -82,7 +82,7 @@ export const envValidationSchema = Joi.object({
     .min(1)
     .default(48),
   ABUSE_PROTECTION_POSTGRES_FAIL_CLOSED_IN_PRODUCTION:
-    Joi.boolean().default(false),
+    Joi.boolean().default(true),
   RATE_LIMIT_OTP_SEND_WINDOW_SECONDS: Joi.number().integer().min(1).default(60),
   RATE_LIMIT_OTP_SEND_MAX_REQUESTS: Joi.number().integer().min(1).default(5),
   RATE_LIMIT_OTP_SEND_BLOCK_SECONDS: Joi.number().integer().min(0).default(300),
