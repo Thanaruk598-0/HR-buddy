@@ -24,3 +24,10 @@ export async function getProblemCategories() {
     query: { isActive: true },
   });
 }
+
+export async function getVehicleIssueCategories() {
+  return apiFetch<ReferenceListResponse>("/reference/vehicle-issue-categories", {
+    method: "GET",
+    query: { isActive: true },
+  });
+}

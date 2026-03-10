@@ -7,12 +7,12 @@ import { getDepartments, getProblemCategories, type ReferenceListItem } from "@/
 import {
   createBuildingRequest,
   type BuildingSide,
-  type BuildingUrgency,
+  type Urgency,
   type CreateBuildingRequestPayload,
 } from "@/lib/api/requests";
 import { Button, SelectField, TextField, TextareaField } from "@/components/ui/form-controls";
 
-const urgencyOptions: Array<{ value: BuildingUrgency; label: string }> = [
+const urgencyOptions: Array<{ value: Urgency; label: string }> = [
   { value: "LOW", label: "Low" },
   { value: "NORMAL", label: "Normal" },
   { value: "HIGH", label: "High" },
@@ -28,7 +28,7 @@ type FormState = {
   employeeName: string;
   departmentId: string;
   phone: string;
-  urgency: BuildingUrgency;
+  urgency: Urgency;
   building: BuildingSide;
   floor: number;
   locationDetail: string;
@@ -244,7 +244,7 @@ export default function Page() {
                 label="Urgency"
                 required
                 value={form.urgency}
-                onChange={(event) => onChange("urgency", event.target.value as BuildingUrgency)}
+                onChange={(event) => onChange("urgency", event.target.value as Urgency)}
               >
                 {urgencyOptions.map((item) => (
                   <option key={item.value} value={item.value}>
