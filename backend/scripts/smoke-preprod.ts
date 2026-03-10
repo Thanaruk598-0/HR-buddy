@@ -1,10 +1,12 @@
-/* eslint-disable no-console */
+﻿/* eslint-disable no-console */
 
 type JsonObject = Record<string, unknown>;
 
 type AdminLoginResponse = {
   sessionToken: string;
 };
+
+type HeaderBag = Record<string, string>;
 
 async function main() {
   const baseUrl = normalizeBaseUrl(
@@ -17,6 +19,8 @@ async function main() {
     process.env.SMOKE_ADMIN_USERNAME ?? process.env.ADMIN_USERNAME ?? 'admin';
   const adminPassword =
     process.env.SMOKE_ADMIN_PASSWORD ?? process.env.ADMIN_PASSWORD ?? '';
+  const healthToken =
+    process.env.SMOKE_HEALTH_TOKEN ?? process.env.HEALTH_CHECK_TOKEN ?? '';
 
   if (!adminPassword) {
     throw new Error(
@@ -26,13 +30,19 @@ async function main() {
 
   logStep(`Smoke checks target: ${baseUrl}`);
 
-  await assertJsonGet(`${baseUrl}/health`, (body) => {
+  await assertJsonGet(`${baseUrl}/health`, {}, (body) => {
     if (body.ok !== true) {
       throw new Error('GET /health response is not ok=true');
     }
   });
 
-  await assertJsonGet(`${baseUrl}/health/ready`, (body) => {
+  const healthHeaders: HeaderBag = {};
+
+  if (healthToken.trim()) {
+    healthHeaders['x-health-token'] = healthToken.trim();
+  }
+
+  await assertJsonGet(`${baseUrl}/health/ready`, healthHeaders, (body) => {
     if (body.ok !== true) {
       const checks = Array.isArray(body.checks)
         ? JSON.stringify(body.checks)
@@ -41,27 +51,45 @@ async function main() {
     }
   });
 
-  await assertJsonGet(`${baseUrl}/health/db`, (body) => {
+  await assertJsonGet(`${baseUrl}/health/db`, healthHeaders, (body) => {
     if (body.ok !== true || body.db !== true) {
       throw new Error('GET /health/db response is not { ok: true, db: true }');
     }
   });
 
   const sessionToken = await adminLogin(baseUrl, adminUsername, adminPassword);
+  const adminHeaders = authHeaders(sessionToken);
 
   await assertStatus(
     `${baseUrl}/admin/auth/me`,
     {
       method: 'GET',
-      headers: {
-        Authorization: `Bearer ${sessionToken}`,
-      },
+      headers: adminHeaders,
     },
     [200],
     'GET /admin/auth/me',
   );
 
+  await assertJsonGet(`${baseUrl}/admin/requests/report/summary`, adminHeaders);
+  await assertJsonGet(`${baseUrl}/admin/requests`, adminHeaders);
+  await assertJsonGet(`${baseUrl}/admin/audit/activity-logs?limit=1`, adminHeaders);
+  await assertJsonGet(`${baseUrl}/admin/settings/departments?limit=1`, adminHeaders);
+  await assertJsonGet(`${baseUrl}/admin/notifications?limit=1`, adminHeaders);
+
+  await assertJsonGet(`${baseUrl}/reference/departments?isActive=true`, {});
+  await assertJsonGet(`${baseUrl}/geo/provinces`, {});
+
   await assertCsvExport(baseUrl, sessionToken);
+
+  await assertStatus(
+    `${baseUrl}/admin/auth/logout`,
+    {
+      method: 'POST',
+      headers: adminHeaders,
+    },
+    [201],
+    'POST /admin/auth/logout',
+  );
 
   console.log('Smoke checks passed.');
 }
@@ -100,9 +128,7 @@ async function adminLogin(
 async function assertCsvExport(baseUrl: string, sessionToken: string) {
   const response = await fetch(`${baseUrl}/admin/requests/export/csv`, {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${sessionToken}`,
-    },
+    headers: authHeaders(sessionToken),
   });
 
   const bodyText = await response.text();
@@ -126,10 +152,12 @@ async function assertCsvExport(baseUrl: string, sessionToken: string) {
 
 async function assertJsonGet(
   url: string,
-  validate: (body: JsonObject) => void,
+  headers: HeaderBag,
+  validate?: (body: JsonObject) => void,
 ): Promise<void> {
   const response = await fetch(url, {
     method: 'GET',
+    headers,
   });
 
   const body = (await tryParseJson(response)) as JsonObject;
@@ -140,7 +168,10 @@ async function assertJsonGet(
     );
   }
 
-  validate(body);
+  if (validate) {
+    validate(body);
+  }
+
   logStep(`GET ${url} passed`);
 }
 
@@ -177,6 +208,12 @@ async function tryParseJson(response: Response): Promise<unknown> {
   }
 }
 
+function authHeaders(sessionToken: string): HeaderBag {
+  return {
+    Authorization: `Bearer ${sessionToken}`,
+  };
+}
+
 function normalizeBaseUrl(url: string): string {
   return url.trim().replace(/\/$/, '');
 }
@@ -190,3 +227,5 @@ main().catch((error: unknown) => {
   console.error(`[smoke] failed: ${message}`);
   process.exitCode = 1;
 });
+
+

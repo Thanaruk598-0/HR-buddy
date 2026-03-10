@@ -1,4 +1,4 @@
-import {
+﻿import {
   BadRequestException,
   INestApplication,
   ValidationPipe,
@@ -15,7 +15,10 @@ import { AttachmentsService } from '../src/modules/attachments/attachments.servi
 import { AuthOtpService } from '../src/modules/auth-otp/auth-otp.service';
 import { MaintenanceService } from '../src/modules/maintenance/maintenance.service';
 import { MessengerService } from '../src/modules/messenger/messenger.service';
+import { NotificationsService } from '../src/modules/notifications/notifications.service';
+import { ReferenceService } from '../src/modules/reference/reference.service';
 import { RequestsService } from '../src/modules/requests/requests.service';
+import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('HR Buddy API (e2e)', () => {
   let app: INestApplication;
@@ -25,6 +28,10 @@ describe('HR Buddy API (e2e)', () => {
     phone: '+66811111111',
     email: 'employee@cl.local',
     expiresAt: new Date('2030-01-01T00:00:00.000Z'),
+  };
+
+  const prismaServiceMock = {
+    $queryRaw: jest.fn(async () => [{ '?column?': 1 }]),
   };
 
   const authOtpServiceMock = {
@@ -47,9 +54,21 @@ describe('HR Buddy API (e2e)', () => {
       requestNo: 'HRB-20260308-REQ1',
       status: 'NEW',
     })),
-    createVehicle: jest.fn(),
-    createMessenger: jest.fn(),
-    createDocument: jest.fn(),
+    createVehicle: jest.fn(async () => ({
+      id: 'req-2',
+      requestNo: 'HRB-20260308-REQ2',
+      status: 'NEW',
+    })),
+    createMessenger: jest.fn(async () => ({
+      id: 'req-3',
+      requestNo: 'HRB-20260308-REQ3',
+      status: 'NEW',
+    })),
+    createDocument: jest.fn(async () => ({
+      id: 'req-4',
+      requestNo: 'HRB-20260308-REQ4',
+      status: 'NEW',
+    })),
     cancelRequest: jest.fn(async (id: string) => ({
       id,
       status: 'CANCELED',
@@ -94,7 +113,11 @@ describe('HR Buddy API (e2e)', () => {
       downloadUrl: 'https://download.example/file.pdf',
       expiresAt: new Date('2030-01-01T00:15:00.000Z'),
     })),
-    addEmployeeAttachment: jest.fn(),
+    addEmployeeAttachment: jest.fn(async () => ({
+      id: 'att-emp-legacy-1',
+      requestId: 'req-1',
+      fileName: 'legacy-emp.pdf',
+    })),
     issueAdminUploadTicket: jest.fn(async () => ({
       uploadToken: 'ticket-admin',
       storageKey: 'requests/req-1/admin.pdf',
@@ -114,7 +137,11 @@ describe('HR Buddy API (e2e)', () => {
       downloadUrl: 'https://download.example/admin.pdf',
       expiresAt: new Date('2030-01-01T00:15:00.000Z'),
     })),
-    addAdminAttachment: jest.fn(),
+    addAdminAttachment: jest.fn(async () => ({
+      id: 'att-admin-legacy-1',
+      requestId: 'req-1',
+      fileName: 'legacy-admin.pdf',
+    })),
   };
 
   const adminRequestsServiceMock = {
@@ -244,6 +271,60 @@ describe('HR Buddy API (e2e)', () => {
     })),
   };
 
+  const referenceServiceMock = {
+    getDepartments: jest.fn(async () => ({
+      items: [{ id: 'dept-1', name: 'HR', isActive: true }],
+    })),
+    getProblemCategories: jest.fn(async () => ({
+      items: [{ id: 'pc-1', name: 'Leak', helperText: null, isActive: true }],
+    })),
+    getVehicleIssueCategories: jest.fn(async () => ({
+      items: [{ id: 'vic-1', name: 'Engine', isActive: true }],
+    })),
+    getOperators: jest.fn(async () => ({
+      items: [{ id: 'op-1', displayName: 'Alice', isActive: true }],
+    })),
+  };
+
+  const notificationsServiceMock = {
+    listForEmployee: jest.fn(async () => ({
+      items: [
+        {
+          id: 'noti-1',
+          eventType: 'APPROVED',
+          title: 'Approved',
+          message: 'Request approved',
+          isRead: false,
+          createdAt: new Date('2030-01-01T00:00:00.000Z'),
+          readAt: null,
+        },
+      ],
+      page: 1,
+      limit: 20,
+      total: 1,
+    })),
+    markAsReadForEmployee: jest.fn(async () => ({ ok: true })),
+    markAllAsReadForEmployee: jest.fn(async () => ({ updated: 1 })),
+    listForAdmin: jest.fn(async () => ({
+      items: [
+        {
+          id: 'noti-admin-1',
+          eventType: 'MESSENGER_BOOKED',
+          title: 'New booking',
+          message: 'Request created',
+          isRead: false,
+          createdAt: new Date('2030-01-01T00:00:00.000Z'),
+          readAt: null,
+        },
+      ],
+      page: 1,
+      limit: 20,
+      total: 1,
+    })),
+    markAsReadForAdmin: jest.fn(async () => ({ ok: true })),
+    markAllAsReadForAdmin: jest.fn(async () => ({ updated: 2 })),
+  };
+
   const maintenanceServiceMock = {
     runRetentionJob: jest.fn(async () => ({
       mode: 'manual',
@@ -313,6 +394,8 @@ describe('HR Buddy API (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
+      .overrideProvider(PrismaService)
+      .useValue(prismaServiceMock)
       .overrideProvider(AuthOtpService)
       .useValue(authOtpServiceMock)
       .overrideProvider(RequestsService)
@@ -327,6 +410,10 @@ describe('HR Buddy API (e2e)', () => {
       .useValue(adminAuditServiceMock)
       .overrideProvider(AdminSettingsService)
       .useValue(adminSettingsServiceMock)
+      .overrideProvider(ReferenceService)
+      .useValue(referenceServiceMock)
+      .overrideProvider(NotificationsService)
+      .useValue(notificationsServiceMock)
       .overrideProvider(MaintenanceService)
       .useValue(maintenanceServiceMock)
       .overrideProvider(MessengerService)
@@ -390,6 +477,16 @@ describe('HR Buddy API (e2e)', () => {
       .expect((res) => {
         expect(res.headers['x-request-id']).toBe('client-trace-001');
       });
+  });
+  it('GET /health/db returns ok database health payload', async () => {
+    await request(app.getHttpServer())
+      .get('/health/db')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toEqual({ ok: true, db: true });
+      });
+
+    expect(prismaServiceMock.$queryRaw).toHaveBeenCalledTimes(1);
   });
 
   it('GET /health/ready returns readiness report', async () => {
@@ -818,6 +915,388 @@ describe('HR Buddy API (e2e)', () => {
       .expect(201)
       .expect((res) => {
         expect(res.body.requests.count).toBe(1);
+      });
+  });
+  it('POST /requests/vehicle creates request on valid payload', async () => {
+    await request(app.getHttpServer())
+      .post('/requests/vehicle')
+      .send({
+        employeeName: 'John',
+        departmentId: 'dept-1',
+        phone: '+66811111111',
+        urgency: 'NORMAL',
+        vehiclePlate: '1กข1234',
+        issueCategoryId: 'vic-1',
+        symptom: 'Engine noise',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.requestNo).toBe('HRB-20260308-REQ2');
+      });
+
+    expect(requestsServiceMock.createVehicle).toHaveBeenCalledTimes(1);
+  });
+
+  it('POST /requests/messenger creates request on valid payload', async () => {
+    await request(app.getHttpServer())
+      .post('/requests/messenger')
+      .send({
+        employeeName: 'John',
+        departmentId: 'dept-1',
+        phone: '+66811111111',
+        urgency: 'NORMAL',
+        pickupDatetime: '2030-01-01T08:00:00.000Z',
+        itemType: 'PACKAGE',
+        itemDescription: 'Documents package',
+        outsideBkkMetro: false,
+        sender: {
+          name: 'John',
+          phone: '0811111111',
+          province: 'Bangkok',
+          district: 'Chatuchak',
+          subdistrict: 'Chatuchak',
+          postalCode: '10900',
+          houseNo: '1/1',
+        },
+        receiver: {
+          name: 'Jane',
+          phone: '0899999999',
+          province: 'Bangkok',
+          district: 'Pathum Wan',
+          subdistrict: 'Lumphini',
+          postalCode: '10330',
+          houseNo: '99',
+        },
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.requestNo).toBe('HRB-20260308-REQ3');
+      });
+
+    expect(requestsServiceMock.createMessenger).toHaveBeenCalledTimes(1);
+  });
+
+  it('POST /requests/document creates request on valid payload', async () => {
+    await request(app.getHttpServer())
+      .post('/requests/document')
+      .send({
+        employeeName: 'John',
+        departmentId: 'dept-1',
+        phone: '0811111111',
+        urgency: 'NORMAL',
+        siteNameRaw: 'CL Head Office',
+        documentDescription: 'Employment certificate',
+        purpose: 'Bank application',
+        neededDate: '2030-01-10T00:00:00.000Z',
+        deliveryMethod: 'DIGITAL',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.requestNo).toBe('HRB-20260308-REQ4');
+      });
+
+    expect(requestsServiceMock.createDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it('employee can get request detail and cancel request', async () => {
+    await request(app.getHttpServer())
+      .get('/requests/req-1')
+      .set('x-employee-session-token', 'emp-valid-token')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.id).toBe('req-1');
+      });
+
+    await request(app.getHttpServer())
+      .patch('/requests/req-1/cancel')
+      .set('x-employee-session-token', 'emp-valid-token')
+      .send({ reason: 'No longer needed' })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.status).toBe('CANCELED');
+      });
+  });
+
+  it('employee legacy attachment add and download url routes work', async () => {
+    await request(app.getHttpServer())
+      .post('/requests/req-1/attachments')
+      .set('x-employee-session-token', 'emp-valid-token')
+      .send({
+        fileKind: 'DOCUMENT',
+        fileName: 'legacy-emp.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 1024,
+        storageKey: 'requests/req-1/legacy-emp.pdf',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.id).toBe('att-emp-legacy-1');
+      });
+
+    await request(app.getHttpServer())
+      .get('/requests/req-1/attachments/att-1/download-url')
+      .set('x-employee-session-token', 'emp-valid-token')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.downloadUrl).toContain('download.example');
+      });
+  });
+
+  it('admin request list/detail and attachment routes work', async () => {
+    const adminToken = await loginAsAdmin();
+
+    await request(app.getHttpServer())
+      .get('/admin/requests')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toHaveProperty('items');
+      });
+
+    await request(app.getHttpServer())
+      .get('/admin/requests/req-1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.id).toBe('req-1');
+      });
+
+    await request(app.getHttpServer())
+      .post('/admin/requests/req-1/attachments')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        fileKind: 'DOCUMENT',
+        fileName: 'legacy-admin.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 2048,
+        storageKey: 'requests/req-1/legacy-admin.pdf',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.id).toBe('att-admin-legacy-1');
+      });
+
+    await request(app.getHttpServer())
+      .get('/admin/requests/req-1/attachments/att-admin-1/download-url')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.downloadUrl).toContain('download.example');
+      });
+  });
+
+  it('admin can logout with bearer token', async () => {
+    const adminToken = await loginAsAdmin();
+
+    await request(app.getHttpServer())
+      .post('/admin/auth/logout')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.ok).toBe(true);
+      });
+  });
+
+  it('admin settings endpoints for categories and operators work', async () => {
+    const adminToken = await loginAsAdmin();
+
+    await request(app.getHttpServer())
+      .get('/admin/settings/problem-categories')
+      .set('Authorization', 'Bearer ' + adminToken)
+      .expect(200)
+      .expect((res) => {
+        expect(Array.isArray(res.body.items)).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .post('/admin/settings/problem-categories')
+      .set('Authorization', 'Bearer ' + adminToken)
+      .send({ name: 'Leak', helperText: 'Water leak' })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.id).toBe('pc-1');
+      });
+
+    await request(app.getHttpServer())
+      .patch('/admin/settings/problem-categories/pc-1')
+      .set('Authorization', 'Bearer ' + adminToken)
+      .send({ name: 'Leak Updated', isActive: true })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.id).toBe('pc-1');
+      });
+
+    await request(app.getHttpServer())
+      .get('/admin/settings/vehicle-issue-categories')
+      .set('Authorization', 'Bearer ' + adminToken)
+      .expect(200)
+      .expect((res) => {
+        expect(Array.isArray(res.body.items)).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .post('/admin/settings/vehicle-issue-categories')
+      .set('Authorization', 'Bearer ' + adminToken)
+      .send({ name: 'Engine' })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.id).toBe('vc-1');
+      });
+
+    await request(app.getHttpServer())
+      .patch('/admin/settings/vehicle-issue-categories/vc-1')
+      .set('Authorization', 'Bearer ' + adminToken)
+      .send({ name: 'Engine Updated', isActive: true })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.id).toBe('vc-1');
+      });
+
+    await request(app.getHttpServer())
+      .get('/admin/settings/operators')
+      .set('Authorization', 'Bearer ' + adminToken)
+      .expect(200)
+      .expect((res) => {
+        expect(Array.isArray(res.body.items)).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .post('/admin/settings/operators')
+      .set('Authorization', 'Bearer ' + adminToken)
+      .send({ displayName: 'Alice' })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.id).toBe('op-1');
+      });
+
+    await request(app.getHttpServer())
+      .patch('/admin/settings/operators/op-1')
+      .set('Authorization', 'Bearer ' + adminToken)
+      .send({ displayName: 'Alice Updated', isActive: true })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.id).toBe('op-1');
+      });
+  });
+  it('reference endpoints return list payload and validate query', async () => {
+    await request(app.getHttpServer())
+      .get('/reference/departments')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.items[0].id).toBe('dept-1');
+      });
+
+    await request(app.getHttpServer())
+      .get('/reference/problem-categories')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.items[0].id).toBe('pc-1');
+      });
+
+    await request(app.getHttpServer())
+      .get('/reference/vehicle-issue-categories')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.items[0].id).toBe('vic-1');
+      });
+
+    await request(app.getHttpServer())
+      .get('/reference/operators')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.items[0].id).toBe('op-1');
+      });
+
+    await request(app.getHttpServer())
+      .get('/reference/departments?isActive=maybe')
+      .expect(400);
+  });
+
+  it('notifications endpoints work for employee and admin', async () => {
+    await request(app.getHttpServer())
+      .get('/notifications/my')
+      .set('x-employee-session-token', 'emp-valid-token')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.total).toBe(1);
+      });
+
+    await request(app.getHttpServer())
+      .patch('/notifications/my/noti-1/read')
+      .set('x-employee-session-token', 'emp-valid-token')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.ok).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .patch('/notifications/my/read-all')
+      .set('x-employee-session-token', 'emp-valid-token')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.updated).toBe(1);
+      });
+
+    const adminToken = await loginAsAdmin();
+
+    await request(app.getHttpServer())
+      .get('/admin/notifications')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.total).toBe(1);
+      });
+
+    await request(app.getHttpServer())
+      .patch('/admin/notifications/noti-admin-1/read')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.ok).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .patch('/admin/notifications/read-all')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.updated).toBe(2);
+      });
+  });
+
+  it('geo endpoints return lookup data and validate required query', async () => {
+    const provinceResponse = await request(app.getHttpServer())
+      .get('/geo/provinces')
+      .expect(200);
+
+    expect(Array.isArray(provinceResponse.body)).toBe(true);
+    expect(provinceResponse.body.length).toBeGreaterThan(0);
+
+    await request(app.getHttpServer()).get('/geo/districts').expect(400);
+
+    await request(app.getHttpServer())
+      .get('/geo/districts?province=UnknownProvince')
+      .expect(200)
+      .expect((res) => {
+        expect(Array.isArray(res.body)).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .get(
+        '/geo/subdistricts?province=UnknownProvince&district=UnknownDistrict',
+      )
+      .expect(200)
+      .expect((res) => {
+        expect(Array.isArray(res.body)).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .get(
+        '/geo/postal-code?province=UnknownProvince&district=UnknownDistrict&subdistrict=UnknownSubdistrict',
+      )
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toHaveProperty('postalCode');
       });
   });
 });

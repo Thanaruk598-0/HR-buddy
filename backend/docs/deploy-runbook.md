@@ -1,4 +1,4 @@
-# Backend Deploy Runbook
+﻿# Backend Deploy Runbook
 
 This runbook is for deploying the HR-Buddy backend service to a production-like environment.
 
@@ -151,6 +151,8 @@ Optional one-command smoke check:
 $env:SMOKE_BASE_URL="http://localhost:3001"
 $env:SMOKE_ADMIN_USERNAME="admin"
 $env:SMOKE_ADMIN_PASSWORD="<admin-password>"
+# Required when target runs with production health token guard
+$env:SMOKE_HEALTH_TOKEN="<health-check-token>"
 npm.cmd run smoke:preprod
 ```
 
@@ -194,3 +196,11 @@ If an official request/order is received from competent authority:
 3. Preserve logs for requested period, up to 2 years when specified by order.
 4. Record chain-of-custody and operator actions in incident/change log.
 5. Resume normal retention only after legal hold release is approved.
+
+## 12) Test Environment Notes
+
+Notes:
+- `test:e2e` in this repository uses mocked service integrations and does not require real OTP/attachment provider keys from `.env`.
+- `smoke:preprod` calls a running backend instance and therefore uses the keys/config already loaded by that target environment.
+
+
