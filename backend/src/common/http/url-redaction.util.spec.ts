@@ -31,6 +31,21 @@ describe('redactUrlForLogs', () => {
     );
   });
 
+  it('redacts sensitive query keys in bracket notation', () => {
+    expect(
+      redactUrlForLogs(
+        '/upload?meta[signature]=abc&payload[token]=123&foo=bar',
+      ),
+    ).toBe(
+      '/upload?meta[signature]=[redacted]&payload[token]=[redacted]&foo=bar',
+    );
+  });
+
+  it('redacts sensitive query keys in nested camelCase notation', () => {
+    expect(
+      redactUrlForLogs('/upload?meta[sessionToken]=abc&meta[fileName]=doc.pdf'),
+    ).toBe('/upload?meta[sessionToken]=[redacted]&meta[fileName]=doc.pdf');
+  });
   it('returns empty string for nullish input', () => {
     expect(redactUrlForLogs(undefined)).toBe('');
     expect(redactUrlForLogs(null)).toBe('');

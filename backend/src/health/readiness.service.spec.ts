@@ -10,23 +10,19 @@ describe('ReadinessService', () => {
   const makeConfig = (values: Record<string, unknown>) =>
     ({
       get: jest.fn((key: string) => {
-        if (key === 'nodeEnv') {
-          return values[key] ?? process.env.NODE_ENV ?? 'development';
+        if (key === 'runtimeEnv') {
+          return values[key] ?? 'development';
         }
 
         return values[key];
       }),
     }) as unknown as ConfigService;
 
-  const originalNodeEnv = process.env.NODE_ENV;
-
   afterEach(() => {
-    process.env.NODE_ENV = originalNodeEnv;
     jest.clearAllMocks();
   });
 
   it('returns healthy readiness report in non-production when db is reachable', async () => {
-    process.env.NODE_ENV = 'development';
     (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ '?column?': 1 }]);
 
     const config = makeConfig({
@@ -61,7 +57,6 @@ describe('ReadinessService', () => {
   });
 
   it('returns not ready when database check fails', async () => {
-    process.env.NODE_ENV = 'development';
     (prisma.$queryRaw as jest.Mock).mockRejectedValue(new Error('db down'));
 
     const config = makeConfig({
@@ -89,7 +84,6 @@ describe('ReadinessService', () => {
   });
 
   it('returns not ready when otp webhook provider is missing URL', async () => {
-    process.env.NODE_ENV = 'development';
     (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ '?column?': 1 }]);
 
     const config = makeConfig({
@@ -117,7 +111,6 @@ describe('ReadinessService', () => {
   });
 
   it('returns not ready when otp webhook provider is missing signing secret', async () => {
-    process.env.NODE_ENV = 'development';
     (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ '?column?': 1 }]);
 
     const config = makeConfig({
@@ -148,7 +141,6 @@ describe('ReadinessService', () => {
   });
 
   it('returns not ready when attachment webhook provider is missing signing secret', async () => {
-    process.env.NODE_ENV = 'development';
     (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ '?column?': 1 }]);
 
     const config = makeConfig({
@@ -178,7 +170,6 @@ describe('ReadinessService', () => {
     );
   });
   it('returns not ready when smtp provider credentials are missing', async () => {
-    process.env.NODE_ENV = 'development';
     (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ '?column?': 1 }]);
 
     const config = makeConfig({
@@ -210,7 +201,6 @@ describe('ReadinessService', () => {
   });
 
   it('returns not ready when strict providers mode requires production-like otp provider', async () => {
-    process.env.NODE_ENV = 'development';
     (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ '?column?': 1 }]);
 
     const config = makeConfig({
@@ -242,7 +232,6 @@ describe('ReadinessService', () => {
   });
 
   it('returns not ready when strict providers mode requires production-like attachment provider', async () => {
-    process.env.NODE_ENV = 'development';
     (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ '?column?': 1 }]);
 
     const config = makeConfig({
@@ -273,7 +262,6 @@ describe('ReadinessService', () => {
   });
 
   it('returns healthy report in strict providers mode when otp is smtp and attachment is b2', async () => {
-    process.env.NODE_ENV = 'development';
     (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ '?column?': 1 }]);
 
     const config = makeConfig({
@@ -300,7 +288,6 @@ describe('ReadinessService', () => {
   });
 
   it('returns not ready when postgres abuse store table is missing', async () => {
-    process.env.NODE_ENV = 'development';
     (prisma.$queryRaw as jest.Mock)
       .mockResolvedValueOnce([{ '?column?': 1 }])
       .mockResolvedValueOnce([{ tableExists: null }]);
@@ -331,7 +318,6 @@ describe('ReadinessService', () => {
   });
 
   it('returns healthy when postgres abuse store table exists', async () => {
-    process.env.NODE_ENV = 'development';
     (prisma.$queryRaw as jest.Mock)
       .mockResolvedValueOnce([{ '?column?': 1 }])
       .mockResolvedValueOnce([{ tableExists: 'abuse_rate_limit_counters' }]);
@@ -361,7 +347,6 @@ describe('ReadinessService', () => {
   });
 
   it('returns not ready in production when runtime config is invalid', async () => {
-    process.env.NODE_ENV = 'production';
     (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ '?column?': 1 }]);
 
     const config = makeConfig({
@@ -377,6 +362,7 @@ describe('ReadinessService', () => {
       'readiness.strictProviders': false,
       'abuseProtection.enabled': true,
       'abuseProtection.store': 'memory',
+      runtimeEnv: 'production',
     });
 
     const svc = new ReadinessService(prisma, config);

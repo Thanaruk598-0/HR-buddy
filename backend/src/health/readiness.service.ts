@@ -307,7 +307,11 @@ export class ReadinessService {
 
   private isProduction() {
     return (
-      (this.config.get<string>('nodeEnv') ?? '').toLowerCase() === 'production'
+      (
+        this.config.get<string>('runtimeEnv') ??
+        this.config.get<string>('nodeEnv') ??
+        ''
+      ).toLowerCase() === 'production'
     );
   }
 }

@@ -17,7 +17,7 @@ describe('AppController health access', () => {
   } as unknown as ReadinessService;
 
   const configValues: Record<string, unknown> = {
-    nodeEnv: 'development',
+    runtimeEnv: 'development',
     'health.checkToken': 'health-token-1234567890',
   };
 
@@ -29,7 +29,7 @@ describe('AppController health access', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    configValues.nodeEnv = 'development';
+    configValues.runtimeEnv = 'development';
     prisma.$queryRaw = jest.fn().mockResolvedValue([{ '?column?': 1 }]);
     readinessService.getReport = jest.fn().mockResolvedValue({
       ok: true,
@@ -47,7 +47,7 @@ describe('AppController health access', () => {
   });
 
   it('does not require health token outside production', async () => {
-    configValues.nodeEnv = 'development';
+    configValues.runtimeEnv = 'development';
 
     await expect(controller.healthDb(undefined)).resolves.toEqual({
       ok: true,
@@ -56,7 +56,7 @@ describe('AppController health access', () => {
   });
 
   it('rejects health endpoint in production when token is invalid', async () => {
-    configValues.nodeEnv = 'production';
+    configValues.runtimeEnv = 'production';
 
     await expect(controller.healthDb('wrong-token')).rejects.toBeInstanceOf(
       UnauthorizedException,
@@ -64,7 +64,7 @@ describe('AppController health access', () => {
   });
 
   it('returns sanitized readiness payload in production', async () => {
-    configValues.nodeEnv = 'production';
+    configValues.runtimeEnv = 'production';
 
     const result = await controller.healthReady('health-token-1234567890');
 
@@ -82,7 +82,7 @@ describe('AppController health access', () => {
   });
 
   it('throws ServiceUnavailableException with sanitized report when readiness fails', async () => {
-    configValues.nodeEnv = 'production';
+    configValues.runtimeEnv = 'production';
     readinessService.getReport = jest.fn().mockResolvedValue({
       ok: false,
       checkedAt: '2026-03-10T00:00:00.000Z',

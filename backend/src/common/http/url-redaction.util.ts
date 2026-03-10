@@ -60,10 +60,54 @@ function isSensitiveQueryKey(rawKey: string) {
     return false;
   }
 
+  const decoded = decodeQueryKey(key);
+  const candidates = [
+    ...buildQueryKeyCandidates(key),
+    ...buildQueryKeyCandidates(decoded),
+  ];
+
+  return candidates.some((candidate) =>
+    SENSITIVE_QUERY_KEY_PATTERN.test(candidate),
+  );
+}
+
+function decodeQueryKey(rawKey: string) {
   try {
-    const decoded = decodeURIComponent(key.replace(/\+/g, ' '));
-    return SENSITIVE_QUERY_KEY_PATTERN.test(decoded);
+    return decodeURIComponent(rawKey.replace(/\+/g, ' '));
   } catch {
-    return SENSITIVE_QUERY_KEY_PATTERN.test(key);
+    return rawKey;
   }
+}
+
+function buildQueryKeyCandidates(rawKey: string) {
+  const candidates = new Set<string>();
+  const normalized = rawKey.trim();
+
+  if (!normalized) {
+    return [];
+  }
+
+  candidates.add(normalized);
+
+  const dotted = normalized.replace(/\[([^\]]+)\]/g, '.$1').replace(/\]/g, '');
+
+  candidates.add(dotted);
+
+  for (const segment of dotted.split('.')) {
+    const trimmedSegment = segment.trim();
+
+    if (!trimmedSegment) {
+      continue;
+    }
+
+    candidates.add(trimmedSegment);
+
+    const camelSegments = trimmedSegment.split(/(?=[A-Z])/).filter(Boolean);
+
+    for (const camelSegment of camelSegments) {
+      candidates.add(camelSegment);
+    }
+  }
+
+  return Array.from(candidates);
 }

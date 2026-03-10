@@ -269,6 +269,16 @@ describe('runtime-config guard', () => {
     );
   });
 
+  it('returns validation error when RUNTIME_ENV and NODE_ENV do not match', () => {
+    const result = validateProductionConfig(
+      makeConfig({
+        runtimeEnv: 'production',
+        nodeEnv: 'development',
+      }),
+    );
+
+    expect(result.errors).toContain('RUNTIME_ENV and NODE_ENV must match');
+  });
   it('returns validation error when wildcard cors origin is used with credentials', () => {
     const result = validateProductionConfig(
       makeConfig({

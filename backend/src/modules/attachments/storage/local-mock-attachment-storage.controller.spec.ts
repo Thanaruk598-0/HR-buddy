@@ -12,6 +12,7 @@ describe('LocalMockAttachmentStorageController', () => {
   const secret = 'local-mock-controller-secret-1234567890';
 
   const configValues: Record<string, unknown> = {
+    runtimeEnv: 'development',
     'attachments.storage.provider': 'local',
     'attachments.uploadTicketSecret': secret,
     'attachments.storage.localMock.maxUploadBytes': 1024,
@@ -30,15 +31,11 @@ describe('LocalMockAttachmentStorageController', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    configValues.runtimeEnv = 'development';
     controller = new LocalMockAttachmentStorageController(
       config,
       localMockStorageService,
     );
-    delete process.env.NODE_ENV;
-  });
-
-  afterEach(() => {
-    delete process.env.NODE_ENV;
   });
 
   const makeSignature = (expiresAtIso: string, storageKey: string) =>
@@ -111,6 +108,24 @@ describe('LocalMockAttachmentStorageController', () => {
         makeRequest('203.0.113.10', Buffer.from('abc')),
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('rejects upload when runtime environment is production', async () => {
+    configValues.runtimeEnv = 'production';
+
+    const storageKey = 'requests/req-1/file.pdf';
+    const expiresAtIso = new Date(Date.now() + 60_000).toISOString();
+
+    await expect(
+      controller.upload(
+        encodeURIComponent(storageKey),
+        expiresAtIso,
+        makeSignature(expiresAtIso, storageKey),
+        makeRequest('127.0.0.1', Buffer.from('abc')),
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    configValues.runtimeEnv = 'development';
   });
 
   it('rejects upload when local mock endpoint is disabled', async () => {

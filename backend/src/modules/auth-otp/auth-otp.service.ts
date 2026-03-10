@@ -305,9 +305,17 @@ export class AuthOtpService {
   }
 
   private shouldExposeDevOtp() {
+    const runtimeEnv = (
+      this.config.get<string>('runtimeEnv') ??
+      this.config.get<string>('nodeEnv') ??
+      process.env.NODE_ENV ??
+      ''
+    )
+      .trim()
+      .toLowerCase();
+
     return (
-      process.env.NODE_ENV !== 'production' &&
-      this.otpDeliveryService.isConsoleProvider()
+      runtimeEnv !== 'production' && this.otpDeliveryService.isConsoleProvider()
     );
   }
 }

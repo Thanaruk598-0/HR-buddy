@@ -30,6 +30,12 @@ export function validateProductionConfig(
   config: ConfigService,
 ): ValidationResult {
   const errors: string[] = [];
+  const runtimeEnv = getNormalizedEnv(config, 'runtimeEnv');
+  const nodeEnv = getNormalizedEnv(config, 'nodeEnv', process.env.NODE_ENV);
+
+  if (runtimeEnv && nodeEnv && runtimeEnv !== nodeEnv) {
+    errors.push('RUNTIME_ENV and NODE_ENV must match');
+  }
 
   const secrets: Array<{ key: string; value: string | null | undefined }> = [
     {
@@ -273,14 +279,21 @@ function shouldValidateRuntimeConfig(config: ConfigService) {
     return true;
   }
 
-  const nodeEnv = (config.get<string>('nodeEnv') ?? process.env.NODE_ENV ?? '')
-    .trim()
-    .toLowerCase();
+  const runtimeEnv = getNormalizedEnv(config, 'runtimeEnv');
+  const nodeEnv = getNormalizedEnv(config, 'nodeEnv', process.env.NODE_ENV);
 
-  if (!nodeEnv) {
-    // Fail closed when NODE_ENV is missing to avoid skipping safety checks by mistake.
+  if (!runtimeEnv && !nodeEnv) {
+    // Fail closed when runtime environment variables are missing to avoid skipping safety checks by mistake.
     return true;
   }
 
-  return nodeEnv === 'production';
+  return runtimeEnv === 'production' || nodeEnv === 'production';
+}
+
+function getNormalizedEnv(
+  config: ConfigService,
+  key: 'runtimeEnv' | 'nodeEnv',
+  fallback?: string,
+) {
+  return (config.get<string>(key) ?? fallback ?? '').trim().toLowerCase();
 }

@@ -1,5 +1,8 @@
 export default () => ({
   nodeEnv: (process.env.NODE_ENV ?? '').trim().toLowerCase(),
+  runtimeEnv: (process.env.RUNTIME_ENV ?? process.env.NODE_ENV ?? '')
+    .trim()
+    .toLowerCase(),
   port: parseInt(process.env.PORT ?? '3001', 10),
   corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:3000')
     .split(',')
@@ -80,6 +83,9 @@ export default () => ({
         process.env.ABUSE_PROTECTION_POSTGRES_RETENTION_HOURS ?? '48',
         10,
       ),
+      failClosedInProduction:
+        process.env.ABUSE_PROTECTION_POSTGRES_FAIL_CLOSED_IN_PRODUCTION ===
+        'true',
     },
     maxEntries: parseInt(
       process.env.ABUSE_PROTECTION_MAX_ENTRIES ?? '50000',

@@ -20,7 +20,11 @@ describe('AbuseProtectionService', () => {
         return 30;
       }
 
-      if (key === 'nodeEnv') {
+      if (key === 'abuseProtection.postgres.failClosedInProduction') {
+        return false;
+      }
+
+      if (key === 'runtimeEnv') {
         return 'development';
       }
 
@@ -75,7 +79,11 @@ describe('AbuseProtectionService', () => {
         return 30;
       }
 
-      if (key === 'nodeEnv') {
+      if (key === 'abuseProtection.postgres.failClosedInProduction') {
+        return false;
+      }
+
+      if (key === 'runtimeEnv') {
         return 'development';
       }
 
@@ -104,7 +112,11 @@ describe('AbuseProtectionService', () => {
         return 30;
       }
 
-      if (key === 'nodeEnv') {
+      if (key === 'abuseProtection.postgres.failClosedInProduction') {
+        return true;
+      }
+
+      if (key === 'runtimeEnv') {
         return 'development';
       }
 
@@ -133,7 +145,7 @@ describe('AbuseProtectionService', () => {
     expect(second.allowed).toBe(true);
   });
 
-  it('fails closed when postgres store fails in production', async () => {
+  it('falls back to memory when postgres store fails in production and fail-closed is disabled', async () => {
     configGetMock.mockImplementation((key: string) => {
       if (key === 'abuseProtection.store') {
         return 'postgres';
@@ -143,7 +155,49 @@ describe('AbuseProtectionService', () => {
         return 30;
       }
 
-      if (key === 'nodeEnv') {
+      if (key === 'abuseProtection.postgres.failClosedInProduction') {
+        return false;
+      }
+
+      if (key === 'runtimeEnv') {
+        return 'production';
+      }
+
+      return undefined;
+    });
+
+    postgresStore.consume.mockRejectedValueOnce(new Error('db unavailable'));
+
+    await expect(
+      service.consume({
+        scope: 'otpVerify',
+        key: 'ip=1.1.1.1',
+        policy: { windowSeconds: 60, maxRequests: 10, blockSeconds: 300 },
+        nowMs: 1_000,
+      }),
+    ).resolves.toMatchObject({
+      allowed: true,
+      remaining: 1,
+    });
+
+    expect(memoryStore.consume).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed when postgres store fails in production and fail-closed is enabled', async () => {
+    configGetMock.mockImplementation((key: string) => {
+      if (key === 'abuseProtection.store') {
+        return 'postgres';
+      }
+
+      if (key === 'abuseProtection.postgres.retryAfterSeconds') {
+        return 30;
+      }
+
+      if (key === 'abuseProtection.postgres.failClosedInProduction') {
+        return true;
+      }
+
+      if (key === 'runtimeEnv') {
         return 'production';
       }
 

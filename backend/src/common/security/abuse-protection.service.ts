@@ -36,7 +36,9 @@ export class AbuseProtectionService {
       try {
         return await this.postgresStore.consume(input);
       } catch (error) {
-        if (this.isProduction()) {
+        const retryAfterSeconds = this.postgresRetryAfterSeconds();
+
+        if (this.isProduction() && this.failClosedInProduction()) {
           this.logger.error(
             `Postgres abuse store failed in production; rejecting requests: ${(error as Error).message}`,
           );
@@ -47,12 +49,17 @@ export class AbuseProtectionService {
           });
         }
 
-        const retryAfterSeconds = this.postgresRetryAfterSeconds();
         this.postgresDisabledUntilMs = nowMs + retryAfterSeconds * 1000;
 
-        this.logger.warn(
-          `Postgres abuse store failed. Fallback to memory for ${retryAfterSeconds}s: ${(error as Error).message}`,
-        );
+        const message = `Postgres abuse store failed. Fallback to memory for ${retryAfterSeconds}s: ${(error as Error).message}`;
+
+        if (this.isProduction()) {
+          this.logger.error(
+            `${message} (ABUSE_PROTECTION_POSTGRES_FAIL_CLOSED_IN_PRODUCTION=false)`,
+          );
+        } else {
+          this.logger.warn(message);
+        }
 
         return this.memoryStore.consume(input);
       }
@@ -78,9 +85,21 @@ export class AbuseProtectionService {
     );
   }
 
+  private failClosedInProduction() {
+    return (
+      this.config.get<boolean>(
+        'abuseProtection.postgres.failClosedInProduction',
+      ) ?? false
+    );
+  }
+
   private isProduction() {
     return (
-      (this.config.get<string>('nodeEnv') ?? '').toLowerCase() === 'production'
+      (
+        this.config.get<string>('runtimeEnv') ??
+        this.config.get<string>('nodeEnv') ??
+        ''
+      ).toLowerCase() === 'production'
     );
   }
 }
