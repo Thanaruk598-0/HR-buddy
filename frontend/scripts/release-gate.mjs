@@ -139,6 +139,11 @@ async function main() {
       args: ["run", "typecheck"],
     },
     {
+      label: "Tests",
+      command: npmCommand,
+      args: ["run", "test"],
+    },
+    {
       label: "Build",
       command: npmCommand,
       args: ["run", "build"],
@@ -157,6 +162,14 @@ async function main() {
     });
   }
 
+  if (requireApi) {
+    steps.push({
+      label: "API contract",
+      command: npmCommand,
+      args: ["run", "api:contract"],
+    });
+  }
+
   for (const step of steps) {
     await runStep(step);
   }
@@ -169,4 +182,3 @@ main().catch((error) => {
   process.stderr.write(`[frontend-release-gate] failed: ${message}\n`);
   process.exit(1);
 });
-
