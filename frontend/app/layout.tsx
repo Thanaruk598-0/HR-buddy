@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Kanit, Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "./_components/navbar";
+import { SiteFooter } from "./_components/site-footer";
 
 const headlineFont = Kanit({
   subsets: ["latin", "thai"],
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body className={`${contentFont.variable} ${headlineFont.variable} antialiased pt-20`}>
         <Navbar />
         {children}
+        <SiteFooter />
       </body>
     </html>
   );

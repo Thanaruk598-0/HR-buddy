@@ -38,27 +38,23 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        {/* Welcome Section */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-slate-900 mb-4">
-            ยินดีต้อนรับสู่ HR Buddy
-          </h1>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+        <div className="mb-12 text-center">
+          <h1 className="mb-4 text-4xl font-bold text-slate-900">ยินดีต้อนรับสู่ HR Buddy</h1>
+          <p className="mx-auto max-w-2xl text-xl text-slate-600">
             ระบบจัดการคำขอและบริการสำหรับพนักงานบริษัท Construction Lines
             ส่งคำขอของคุณได้อย่างง่ายดายและติดตามสถานะได้แบบเรียลไทม์
           </p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-12">
+        <div className="mb-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {requestTypes.map((request) => (
             <Link
               key={request.path}
               href={request.path}
-              className="group bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-lg hover:border-blue-300 transition-all duration-200"
+              className="group rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-200 hover:border-blue-300 hover:shadow-lg"
             >
-              <div className="text-3xl mb-4">{request.icon}</div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2 group-hover:text-blue-600 transition">
+              <div className="mb-4 text-3xl">{request.icon}</div>
+              <h3 className="mb-2 text-lg font-semibold text-slate-900 transition group-hover:text-blue-600">
                 {request.title}
               </h3>
               <p className="text-sm text-slate-600">{request.description}</p>
@@ -66,35 +62,13 @@ export default function Home() {
           ))}
         </div>
 
-        {/* My Requests Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-semibold text-slate-900">
-                คำขอของฉัน
-              </h2>
-              <p className="text-slate-600 mt-1">
-                ดูและติดตามสถานะคำขอที่คุณส่งแล้ว
-              </p>
-            </div>
-            <Link
-              href="/my-requests"
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition"
-            >
-              ดูรายการทั้งหมด
-            </Link>
-          </div>
-
-          {/* Placeholder for recent requests */}
-          <div className="text-center py-8 text-slate-500">
-            <div className="text-4xl mb-4">📋</div>
-            <p>ยังไม่มีคำขอ เริ่มส่งคำขอแรกของคุณเลย!</p>
-          </div>
-        </div>
-
-        {/* Footer Info */}
-        <div className="mt-12 text-center text-slate-500">
-          <p>© 2026 Construction Lines - HR Buddy System</p>
+        <div className="flex justify-center">
+          <Link
+            href="/my-requests"
+            className="inline-flex items-center rounded-xl bg-[#0e2d4c] px-7 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-px hover:bg-[#123d66]"
+          >
+            คำขอของฉันทั้งหมด
+          </Link>
         </div>
       </div>
     </main>
