@@ -4,11 +4,12 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuthToken } from "@/lib/auth/use-auth-token";
 
 const navItems = [
   {
     href: "/",
-    label: "หน้าหลัก",
+    label: "หน้าแรก",
     iconPath:
       "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6",
   },
@@ -28,24 +29,26 @@ function isActivePath(pathname: string, href: string) {
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const adminToken = useAuthToken("admin");
+  const isAdminSignedIn = Boolean(adminToken);
+
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    return null;
+  }
 
   return (
     <nav className="fixed inset-x-0 top-0 z-50 [font-family:var(--font-content)]">
-      {/* ── Gradient accent bar ── */}
       <div className="h-[3px] w-full bg-gradient-to-r from-[#0e2d4c] via-[#b62026] to-[#fed54f]" />
 
-      {/* ── Main bar ── */}
       <div className="border-b border-[#0e2d4c]/10 bg-white/95 backdrop-blur-xl shadow-[0_6px_26px_-10px_rgba(14,45,76,0.14)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-[76px] items-center justify-between">
-            {/* ─── Brand ─── */}
             <Link href="/" className="group flex items-center gap-4">
-              {/* Logo wrapper */}
               <div className="relative">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[#0e2d4c] to-[#b62026] opacity-0 blur transition duration-300 group-hover:opacity-30" />
                 <div className="relative rounded-xl border border-[#0e2d4c]/12 bg-white p-2 shadow-sm">
                   <Image
-                    src="/company-logo.jpg"
+                    src="/company-logo-navbar.jpg"
                     alt="Construction Lines"
                     width={44}
                     height={44}
@@ -54,7 +57,6 @@ export function Navbar() {
                 </div>
               </div>
 
-              {/* Text */}
               <div className="flex flex-col gap-0.5">
                 <span className="[font-family:var(--font-headline)] text-[14px] font-bold uppercase tracking-[0.16em] text-[#0e2d4c]/60 transition duration-300 group-hover:text-[#0e2d4c]/80">
                   Construction Lines
@@ -71,7 +73,6 @@ export function Navbar() {
               </div>
             </Link>
 
-            {/* ─── Desktop nav ─── */}
             <div className="hidden items-center gap-1.5 md:flex">
               {navItems.map((item) => {
                 const isActive = isActivePath(pathname, item.href);
@@ -109,7 +110,6 @@ export function Navbar() {
                     </svg>
                     {item.label}
 
-                    {/* Active bottom border */}
                     {isActive && (
                       <span className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-[#fed54f]/90" />
                     )}
@@ -117,12 +117,10 @@ export function Navbar() {
                 );
               })}
 
-              {/* Separator */}
               <div className="mx-3.5 h-8 w-px bg-gradient-to-b from-transparent via-[#0e2d4c]/15 to-transparent" />
 
-              {/* Admin CTA */}
               <Link
-                href="/admin/login"
+                href={isAdminSignedIn ? "/admin" : "/admin/login"}
                 className="
                   group/btn relative inline-flex items-center gap-2.5 overflow-hidden
                   rounded-xl bg-[#b62026] px-[22px] py-[11px]
@@ -134,7 +132,6 @@ export function Navbar() {
                   focus-visible:ring-[#fed54f] focus-visible:ring-offset-2
                 "
               >
-                {/* Shine sweep */}
                 <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-500 group-hover/btn:translate-x-full" />
 
                 <svg
@@ -150,11 +147,12 @@ export function Navbar() {
                     d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
                   />
                 </svg>
-                <span className="relative">เข้าสู่ระบบ Admin</span>
+                <span className="relative">
+                  {isAdminSignedIn ? "กลับสู่ Dashboard" : "เข้าสู่ระบบ Admin"}
+                </span>
               </Link>
             </div>
 
-            {/* ─── Mobile toggle ─── */}
             <button
               onClick={() => setMobileMenuOpen((p) => !p)}
               aria-label="Toggle menu"
@@ -183,7 +181,6 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* ─── Mobile drawer ─── */}
       <div
         className={`overflow-hidden transition-all duration-300 ease-in-out md:hidden ${mobileMenuOpen ? "max-h-[420px] opacity-100" : "pointer-events-none max-h-0 opacity-0"}`}
       >
@@ -208,7 +205,6 @@ export function Navbar() {
                     }
                   `}
                 >
-                  {/* Left accent bar */}
                   <span
                     className={`h-5 w-[3px] rounded-full transition-all ${isActive ? "bg-[#fed54f]" : "bg-transparent"}`}
                   />
@@ -230,11 +226,10 @@ export function Navbar() {
               );
             })}
 
-            {/* Divider */}
             <div className="mx-2 my-2 h-px bg-[#0e2d4c]/8" />
 
             <Link
-              href="/admin/login"
+              href={isAdminSignedIn ? "/admin" : "/admin/login"}
               onClick={() => setMobileMenuOpen(false)}
               className="
                 group/mbtn relative flex items-center justify-center gap-2.5 overflow-hidden
@@ -258,7 +253,9 @@ export function Navbar() {
                   d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
                 />
               </svg>
-              <span className="relative">เข้าสู่ระบบ Admin</span>
+              <span className="relative">
+                {isAdminSignedIn ? "กลับสู่ Dashboard" : "เข้าสู่ระบบ Admin"}
+              </span>
             </Link>
           </div>
         </div>

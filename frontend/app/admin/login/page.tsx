@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button, TextField } from "@/components/ui/form-controls";
 import { ApiError } from "@/lib/api/client";
 import { adminLogin, adminMe } from "@/lib/api/admin-auth";
@@ -18,10 +18,7 @@ export default function Page() {
 
 function LoginPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const nextRaw = searchParams.get("next") || "/admin";
-  const nextPath = nextRaw.startsWith("/admin") ? nextRaw : "/admin";
+  const nextPath = "/admin";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -166,3 +163,4 @@ function LoginPageLoading() {
     </main>
   );
 }
+
