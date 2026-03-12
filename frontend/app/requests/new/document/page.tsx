@@ -37,6 +37,7 @@ type AddressGeoState = {
 type FormState = {
   employeeName: string;
   departmentId: string;
+  departmentOther: string;
   phone: string;
   urgency: Urgency;
   siteNameRaw: string;
@@ -63,6 +64,7 @@ const createInitialAddressState = (): AddressState => ({
 const initialFormState: FormState = {
   employeeName: "",
   departmentId: "",
+  departmentOther: "",
   phone: "",
   urgency: "NORMAL",
   siteNameRaw: "",
@@ -144,6 +146,7 @@ export default function Page() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isPostal = useMemo(() => form.deliveryMethod === "POSTAL", [form.deliveryMethod]);
+  const isOtherDepartment = useMemo(() => form.departmentId === "dept_other", [form.departmentId]);
 
   useEffect(() => {
     let active = true;
@@ -332,6 +335,10 @@ export default function Page() {
       return "Department is required";
     }
 
+    if (isOtherDepartment && !form.departmentOther.trim()) {
+      return "Please fill the other department name";
+    }
+
     if (!isValidPhone(form.phone)) {
       return "Phone must be 9-15 digits and may start with +";
     }
@@ -392,6 +399,10 @@ export default function Page() {
       deliveryMethod: form.deliveryMethod,
       ...(form.note.trim() ? { note: form.note.trim() } : {}),
     };
+
+    if (isOtherDepartment) {
+      payload.departmentOther = form.departmentOther.trim();
+    }
 
     if (isPostal) {
       payload.deliveryAddress = normalizeAddress(address);
@@ -463,6 +474,18 @@ export default function Page() {
                   </option>
                 ))}
               </SelectField>
+
+              {isOtherDepartment ? (
+                <TextField
+                  id="departmentOther"
+                  label="Other Department"
+                  required
+                  value={form.departmentOther}
+                  onChange={(event) => onChange("departmentOther", event.target.value)}
+                  placeholder="Please specify department name"
+                  maxLength={120}
+                />
+              ) : null}
 
               <SelectField
                 id="urgency"

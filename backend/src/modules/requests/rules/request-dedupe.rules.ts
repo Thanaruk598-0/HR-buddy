@@ -65,6 +65,7 @@ function matchesBaseFields(
   dto: {
     employeeName: string;
     departmentId: string;
+    departmentOther?: string | null;
     phone: string;
     urgency: string;
   },
@@ -72,6 +73,8 @@ function matchesBaseFields(
   return (
     normalizeText(candidate.employeeName) === normalizeText(dto.employeeName) &&
     candidate.departmentId === dto.departmentId &&
+    normalizeOptionalText(candidate.departmentOther) ===
+      normalizeOptionalText(dto.departmentOther) &&
     normalizePhone(candidate.phone) === normalizePhone(dto.phone) &&
     candidate.urgency === dto.urgency
   );
@@ -224,3 +227,4 @@ export function isDuplicateDocumentRequest(
     return equalsAddress(dto.deliveryAddress, detail.deliveryAddress);
   });
 }
+

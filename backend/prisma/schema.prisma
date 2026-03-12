@@ -122,6 +122,7 @@ model Request {
 
   employeeName String     @map("employee_name")
   departmentId String     @map("department_id")
+  departmentOther String? @map("department_other")
   department   Department @relation(fields: [departmentId], references: [id])
   phone        String
 

@@ -18,6 +18,11 @@ export class CreateVehicleRequestDto {
   @IsNotEmpty()
   departmentId!: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  departmentOther?: string;
+
   @IsString()
   @Matches(/^\+?\d{9,15}$/)
   phone!: string;

@@ -45,6 +45,7 @@ type AddressGeoState = {
 type FormState = {
   employeeName: string;
   departmentId: string;
+  departmentOther: string;
   phone: string;
   urgency: Urgency;
   pickupDatetime: string;
@@ -71,6 +72,7 @@ const createInitialAddressState = (): AddressState => ({
 const initialFormState: FormState = {
   employeeName: "",
   departmentId: "",
+  departmentOther: "",
   phone: "",
   urgency: "NORMAL",
   pickupDatetime: "",
@@ -450,6 +452,7 @@ export default function Page() {
     };
   }, [receiver.province, receiver.district, receiver.subdistrict]);
 
+  const isOtherDepartment = useMemo(() => form.departmentId === "dept_other", [form.departmentId]);
   const requiresDeliveryService = useMemo(() => form.outsideBkkMetro, [form.outsideBkkMetro]);
   const requiresDeliveryServiceOther = useMemo(
     () => requiresDeliveryService && form.deliveryService === "OTHER",
@@ -464,6 +467,10 @@ export default function Page() {
     if (!form.departmentId) {
       return "Department is required";
     }
+    if (isOtherDepartment && !form.departmentOther.trim()) {
+      return "Please fill the other department name";
+    }
+
 
     if (!isValidPhone(form.phone)) {
       return "Phone must be 9-15 digits and may start with +";
@@ -529,6 +536,10 @@ export default function Page() {
       sender: normalizeAddress(sender),
       receiver: normalizeAddress(receiver),
     };
+
+    if (isOtherDepartment) {
+      payload.departmentOther = form.departmentOther.trim();
+    }
 
     if (form.outsideBkkMetro) {
       payload.deliveryService = form.deliveryService;
@@ -604,6 +615,19 @@ export default function Page() {
                   </option>
                 ))}
               </SelectField>
+
+              {isOtherDepartment ? (
+                <TextField
+                  id="departmentOther"
+                  label="Other Department"
+                  required
+                  value={form.departmentOther}
+                  onChange={(event) => onChange("departmentOther", event.target.value)}
+                  placeholder="Please specify department name"
+                  maxLength={120}
+                />
+              ) : null}
+
 
               <SelectField
                 id="urgency"
@@ -957,3 +981,9 @@ export default function Page() {
     </main>
   );
 }
+
+
+
+
+
+

@@ -10,11 +10,25 @@ const MB = 1024 * 1024;
 export const ATTACHMENT_POLICY: Record<AttachmentFileKind, AttachmentPolicy> = {
   IMAGE: {
     maxSizeBytes: 10 * MB,
-    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+    allowedMimeTypes: [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "image/heic",
+      "image/heif",
+    ],
   },
   VIDEO: {
     maxSizeBytes: 100 * MB,
-    allowedMimeTypes: ["video/mp4", "video/quicktime"],
+    allowedMimeTypes: [
+      "video/mp4",
+      "video/quicktime",
+      "video/webm",
+      "video/x-msvideo",
+      "video/mpeg",
+    ],
   },
   DOCUMENT: {
     maxSizeBytes: 20 * MB,
@@ -24,7 +38,14 @@ export const ATTACHMENT_POLICY: Record<AttachmentFileKind, AttachmentPolicy> = {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/vnd.ms-excel",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "application/rtf",
+      "application/zip",
+      "application/x-zip-compressed",
       "text/plain",
+      "text/csv",
+      "application/csv",
     ],
   },
 };
@@ -35,13 +56,23 @@ const EXTENSION_MIME_MAP: Record<string, string> = {
   ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   ".xls": "application/vnd.ms-excel",
   ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".ppt": "application/vnd.ms-powerpoint",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ".rtf": "application/rtf",
+  ".zip": "application/zip",
   ".txt": "text/plain",
+  ".csv": "text/csv",
   ".mp4": "video/mp4",
   ".mov": "video/quicktime",
+  ".webm": "video/webm",
+  ".avi": "video/x-msvideo",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".png": "image/png",
   ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".heic": "image/heic",
+  ".heif": "image/heif",
 };
 
 function normalizeMimeType(value: string) {
@@ -121,6 +152,7 @@ export function validateAttachmentCandidate(file: File, requestedKind: Attachmen
     mimeType,
   };
 }
+
 export function getAcceptMimeTypes(kind: AttachmentFileKind) {
   return ATTACHMENT_POLICY[kind].allowedMimeTypes.join(",");
 }
@@ -130,4 +162,3 @@ export function getAttachmentPolicySummary(kind: AttachmentFileKind) {
   const maxSize = formatSizeLimit(policy.maxSizeBytes);
   return `Allowed: ${policy.allowedMimeTypes.join(", ")} | Max: ${maxSize}`;
 }
-

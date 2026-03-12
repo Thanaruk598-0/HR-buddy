@@ -66,6 +66,11 @@ export class CreateMessengerRequestDto {
   @IsNotEmpty()
   departmentId!: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  departmentOther?: string;
+
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)

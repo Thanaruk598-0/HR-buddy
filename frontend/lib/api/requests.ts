@@ -22,6 +22,7 @@ export type AddressPayload = {
 export type CreateBuildingRequestPayload = {
   employeeName: string;
   departmentId: string;
+  departmentOther?: string;
   phone: string;
   urgency: Urgency;
   building: BuildingSide;
@@ -36,6 +37,7 @@ export type CreateBuildingRequestPayload = {
 export type CreateVehicleRequestPayload = {
   employeeName: string;
   departmentId: string;
+  departmentOther?: string;
   phone: string;
   urgency: Urgency;
   vehiclePlate: string;
@@ -48,6 +50,7 @@ export type CreateVehicleRequestPayload = {
 export type CreateMessengerRequestPayload = {
   employeeName: string;
   departmentId: string;
+  departmentOther?: string;
   phone: string;
   urgency: Urgency;
   pickupDatetime: string;
@@ -63,6 +66,7 @@ export type CreateMessengerRequestPayload = {
 export type CreateDocumentRequestPayload = {
   employeeName: string;
   departmentId: string;
+  departmentOther?: string;
   phone: string;
   urgency: Urgency;
   siteNameRaw: string;

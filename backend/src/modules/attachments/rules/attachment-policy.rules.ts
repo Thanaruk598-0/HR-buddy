@@ -9,11 +9,25 @@ const FILE_POLICY: Record<
 > = {
   IMAGE: {
     maxSize: 10 * 1024 * 1024,
-    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    allowedMimeTypes: [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'image/heic',
+      'image/heif',
+    ],
   },
   VIDEO: {
     maxSize: 100 * 1024 * 1024,
-    allowedMimeTypes: ['video/mp4', 'video/quicktime'],
+    allowedMimeTypes: [
+      'video/mp4',
+      'video/quicktime',
+      'video/webm',
+      'video/x-msvideo',
+      'video/mpeg',
+    ],
   },
   DOCUMENT: {
     maxSize: 20 * 1024 * 1024,
@@ -23,7 +37,14 @@ const FILE_POLICY: Record<
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'application/rtf',
+      'application/zip',
+      'application/x-zip-compressed',
       'text/plain',
+      'text/csv',
+      'application/csv',
     ],
   },
 };

@@ -28,6 +28,7 @@ import {
   assertVehicleRefsExist,
 } from './rules/vehicle.rules';
 import { assertMessengerDeliveryRule } from './rules/messenger.rules';
+import { assertDepartmentOtherRule } from './rules/department.rules';
 import { assertDocumentCreateRule } from './rules/document.rules';
 import {
   assertEmployeeCancelableStatus,
@@ -73,6 +74,7 @@ export class RequestsService {
     urgency: Urgency;
     employeeName: string;
     departmentId: string;
+    departmentOther?: string;
     phone: string;
     detailCreator: DetailCreator;
     dedupeMatcher: DedupeMatcher;
@@ -82,6 +84,7 @@ export class RequestsService {
       urgency,
       employeeName,
       departmentId,
+      departmentOther,
       phone,
       detailCreator,
       dedupeMatcher,
@@ -95,7 +98,7 @@ export class RequestsService {
       // common FK validate: department
       const dept = await tx.department.findUnique({
         where: { id: departmentId },
-        select: { id: true },
+        select: { id: true, name: true },
       });
 
       if (!dept) {
@@ -104,6 +107,12 @@ export class RequestsService {
           message: 'Invalid departmentId',
         });
       }
+
+      assertDepartmentOtherRule({
+        departmentId: dept.id,
+        departmentName: dept.name,
+        departmentOther,
+      });
 
       const dedupeWindowSeconds = this.requestDedupeWindowSeconds();
 
@@ -162,6 +171,7 @@ export class RequestsService {
           urgency,
           employeeName,
           departmentId,
+          departmentOther: departmentOther?.trim() || null,
           phone,
         },
       });
@@ -216,6 +226,7 @@ export class RequestsService {
       urgency: dto.urgency,
       employeeName: dto.employeeName,
       departmentId: dto.departmentId,
+      departmentOther: dto.departmentOther,
       phone: dto.phone,
       dedupeMatcher: (recentRequests) =>
         isDuplicateBuildingRequest(dto, recentRequests),
@@ -252,6 +263,7 @@ export class RequestsService {
       urgency: dto.urgency,
       employeeName: dto.employeeName,
       departmentId: dto.departmentId,
+      departmentOther: dto.departmentOther,
       phone: dto.phone,
       dedupeMatcher: (recentRequests) =>
         isDuplicateVehicleRequest(dto, recentRequests),
@@ -283,6 +295,7 @@ export class RequestsService {
       urgency: dto.urgency,
       employeeName: dto.employeeName,
       departmentId: dto.departmentId,
+      departmentOther: dto.departmentOther,
       phone: dto.phone,
       dedupeMatcher: (recentRequests) =>
         isDuplicateMessengerRequest(dto, recentRequests),
@@ -330,6 +343,7 @@ export class RequestsService {
       urgency: dto.urgency,
       employeeName: dto.employeeName,
       departmentId: dto.departmentId,
+      departmentOther: dto.departmentOther,
       phone: dto.phone,
       dedupeMatcher: (recentRequests) =>
         isDuplicateDocumentRequest(dto, recentRequests),
@@ -591,4 +605,5 @@ export class RequestsService {
     return req;
   }
 }
+
 

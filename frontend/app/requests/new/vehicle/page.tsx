@@ -21,6 +21,7 @@ const urgencyOptions: Array<{ value: Urgency; label: string }> = [
 type FormState = {
   employeeName: string;
   departmentId: string;
+  departmentOther: string;
   phone: string;
   urgency: Urgency;
   vehiclePlate: string;
@@ -33,6 +34,7 @@ type FormState = {
 const initialState: FormState = {
   employeeName: "",
   departmentId: "",
+  departmentOther: "",
   phone: "",
   urgency: "NORMAL",
   vehiclePlate: "",
@@ -95,6 +97,7 @@ export default function Page() {
   }, []);
 
   const isOtherCategory = useMemo(() => form.issueCategoryId === "vic_other", [form.issueCategoryId]);
+  const isOtherDepartment = useMemo(() => form.departmentId === "dept_other", [form.departmentId]);
 
   const onChange = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -107,6 +110,10 @@ export default function Page() {
 
     if (!form.departmentId) {
       return "Department is required";
+    }
+
+    if (isOtherDepartment && !form.departmentOther.trim()) {
+      return "Please fill the other department name";
     }
 
     if (!/^\+?\d{9,15}$/.test(form.phone.trim())) {
@@ -151,6 +158,10 @@ export default function Page() {
       issueCategoryId: form.issueCategoryId,
       symptom: form.symptom.trim(),
     };
+
+    if (isOtherDepartment) {
+      payload.departmentOther = form.departmentOther.trim();
+    }
 
     if (isOtherCategory) {
       payload.issueCategoryOther = form.issueCategoryOther.trim();
@@ -266,6 +277,18 @@ export default function Page() {
                 ))}
               </SelectField>
             </div>
+
+            {isOtherDepartment ? (
+              <TextField
+                id="departmentOther"
+                label="Other Department"
+                required
+                value={form.departmentOther}
+                onChange={(event) => onChange("departmentOther", event.target.value)}
+                placeholder="Please specify department name"
+                maxLength={120}
+              />
+            ) : null}
 
             {isOtherCategory ? (
               <TextField
