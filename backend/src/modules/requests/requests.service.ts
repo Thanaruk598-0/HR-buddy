@@ -392,6 +392,18 @@ export class RequestsService {
     `;
   }
 
+
+  private async acquireRequestMutationLock(tx: Tx, requestId: string) {
+    const lockKey = `request_mutation:${requestId}`;
+
+    await tx.$queryRaw`
+      WITH advisory_lock AS (
+        SELECT pg_advisory_xact_lock(hashtext(${lockKey}))
+      )
+      SELECT true AS "acquired"
+    `;
+  }
+
   private requestCreateLockKey(type: RequestType, phone: string) {
     return `request_create:${type}:${phone.trim()}`;
   }
@@ -405,6 +417,8 @@ export class RequestsService {
 
   async cancelRequest(id: string, phone: string, reason: string) {
     return this.prisma.$transaction(async (tx) => {
+      await this.acquireRequestMutationLock(tx, id);
+
       const req = await tx.request.findUnique({
         where: { id },
         select: {
@@ -577,3 +591,4 @@ export class RequestsService {
     return req;
   }
 }
+

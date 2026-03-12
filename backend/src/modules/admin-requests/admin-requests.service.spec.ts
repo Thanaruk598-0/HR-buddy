@@ -4,6 +4,7 @@ import { AdminRequestsService } from './admin-requests.service';
 
 describe('AdminRequestsService.updateStatus', () => {
   const tx = {
+    $queryRaw: jest.fn(),
     request: {
       findUnique: jest.fn(),
       update: jest.fn(),
@@ -75,6 +76,7 @@ describe('AdminRequestsService.updateStatus', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    tx.$queryRaw.mockResolvedValue([{ pg_advisory_xact_lock: null }]);
     tx.operator.findUnique.mockResolvedValue({
       id: 'op-1',
       isActive: true,
@@ -93,6 +95,19 @@ describe('AdminRequestsService.updateStatus', () => {
     messengerService.revokeMagicLinkForRequest.mockResolvedValue(undefined);
   });
 
+  it('acquires request mutation lock before status update', async () => {
+    tx.request.findUnique.mockResolvedValue(makeRequest());
+
+    await service.updateStatus('req-1', {
+      status: RequestStatus.APPROVED,
+      operatorId: 'op-1',
+    });
+
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(String((tx.$queryRaw as jest.Mock).mock.calls[0][0][0])).toContain(
+      'pg_advisory_xact_lock',
+    );
+  });
   it('rejects invalid status transition for messenger', async () => {
     tx.request.findUnique.mockResolvedValue(
       makeRequest({

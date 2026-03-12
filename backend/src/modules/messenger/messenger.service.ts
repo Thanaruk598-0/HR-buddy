@@ -352,7 +352,7 @@ export class MessengerService {
   }
 
   private messengerMutationLockKey(requestId: string) {
-    return `messenger_mutation:${requestId}`;
+    return `request_mutation:${requestId}`;
   }
 
   private async assertNoMutationReplay(
@@ -461,3 +461,4 @@ export class MessengerService {
     return normalized;
   }
 }
+

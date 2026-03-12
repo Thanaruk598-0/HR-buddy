@@ -1,4 +1,4 @@
-import { RequestType } from '@prisma/client';
+import { RequestStatus, RequestType } from '@prisma/client';
 import { RequestsService } from './requests.service';
 
 describe('RequestsService create lock', () => {
@@ -8,6 +8,7 @@ describe('RequestsService create lock', () => {
       findUnique: jest.fn(),
     },
     request: {
+      findUnique: jest.fn(),
       findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
@@ -23,8 +24,13 @@ describe('RequestsService create lock', () => {
     ),
   };
 
-  const messengerService = {};
-  const notificationsService = {};
+  const messengerService = {
+    revokeMagicLinkForRequest: jest.fn(),
+  };
+
+  const notificationsService = {
+    notifyAdminRequestCanceled: jest.fn(),
+  };
 
   const buildService = (useDbLock: boolean) => {
     const config = {
@@ -55,6 +61,13 @@ describe('RequestsService create lock', () => {
 
     tx.$queryRaw.mockResolvedValue([{ pg_advisory_xact_lock: null }]);
     tx.department.findUnique.mockResolvedValue({ id: 'dept-1' });
+    tx.request.findUnique.mockResolvedValue({
+      id: 'req-1',
+      requestNo: 'HRB-20260308-0001',
+      type: RequestType.BUILDING,
+      status: RequestStatus.NEW,
+      phone: '+66811111111',
+    });
     tx.request.findMany.mockResolvedValue([]);
     tx.request.create.mockResolvedValue({
       id: 'req-1',
@@ -64,6 +77,10 @@ describe('RequestsService create lock', () => {
     });
     tx.request.update.mockResolvedValue({ id: 'req-1' });
     tx.requestActivityLog.create.mockResolvedValue({ id: 'log-1' });
+    notificationsService.notifyAdminRequestCanceled.mockResolvedValue({
+      id: 'notif-1',
+    });
+    messengerService.revokeMagicLinkForRequest.mockResolvedValue(undefined);
   });
 
   it('acquires advisory lock before dedupe check when enabled', async () => {
@@ -103,5 +120,16 @@ describe('RequestsService create lock', () => {
     });
 
     expect(tx.$queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('acquires advisory lock before cancel mutation', async () => {
+    const service = buildService(true);
+
+    await service.cancelRequest('req-1', '+66811111111', 'Duplicate request');
+
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(String((tx.$queryRaw as jest.Mock).mock.calls[0][0][0])).toContain(
+      'pg_advisory_xact_lock',
+    );
   });
 });

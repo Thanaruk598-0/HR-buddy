@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { RequestStatus, RequestType } from '@prisma/client';
+import { Prisma, RequestStatus, RequestType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MessengerService } from '../messenger/messenger.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -32,6 +32,7 @@ const DEFAULT_LIST_LIMIT = 20;
 const DEFAULT_PAGE = 1;
 const MAX_EXPORT_LIMIT = 5000;
 const DEFAULT_EXPORT_LIMIT = 1000;
+type Tx = Prisma.TransactionClient;
 
 @Injectable()
 export class AdminRequestsService {
@@ -231,6 +232,8 @@ export class AdminRequestsService {
         });
       }
 
+      await this.acquireRequestMutationLock(tx, id);
+
       const req = await tx.request.findUnique({
         where: { id },
         select: {
@@ -406,4 +409,15 @@ export class AdminRequestsService {
       };
     });
   }
+  private async acquireRequestMutationLock(tx: Tx, requestId: string) {
+    const lockKey = `request_mutation:${requestId}`;
+
+    await tx.$queryRaw`
+      WITH advisory_lock AS (
+        SELECT pg_advisory_xact_lock(hashtext(${lockKey}))
+      )
+      SELECT true AS "acquired"
+    `;
+  }
 }
+
