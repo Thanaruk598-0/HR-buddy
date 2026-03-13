@@ -87,7 +87,7 @@ describe('B2AttachmentStorageProvider', () => {
     const command = getSignedUrlMock.mock.calls[0][1] as GetObjectCommand;
 
     expect(command.input.ResponseContentDisposition).toBe(
-      'attachment; filename="myfile.pdf"',
+      `attachment; filename="myfile.pdf"; filename*=UTF-8''myfile.pdf`,
     );
   });
 
@@ -143,3 +143,4 @@ describe('B2AttachmentStorageProvider', () => {
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 });
+

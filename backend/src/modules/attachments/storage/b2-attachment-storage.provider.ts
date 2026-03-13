@@ -14,6 +14,7 @@ import {
   AttachmentStorageProvider,
   AttachmentUploadPresign,
 } from './attachment-storage.interface';
+import { buildContentDispositionHeader } from './content-disposition.util';
 
 @Injectable()
 export class B2AttachmentStorageProvider implements AttachmentStorageProvider {
@@ -59,12 +60,16 @@ export class B2AttachmentStorageProvider implements AttachmentStorageProvider {
     const { bucketName } = this.readRequiredConfig();
     const expiresIn = this.computeExpiresInSeconds(params.expiresAt);
 
-    const fileName = this.sanitizeFileName(params.fileName);
+    const disposition = params.disposition ?? 'attachment';
+    const contentDisposition = buildContentDispositionHeader({
+      disposition,
+      fileName: params.fileName,
+    });
 
     const command = new GetObjectCommand({
       Bucket: bucketName,
       Key: params.storageKey,
-      ResponseContentDisposition: `${params.disposition ?? 'attachment'}; filename="${fileName}"`,
+      ResponseContentDisposition: contentDisposition,
     });
 
     const url = await getSignedUrl(this.createClient(), command, {
@@ -180,10 +185,6 @@ export class B2AttachmentStorageProvider implements AttachmentStorageProvider {
     return Math.min(Math.max(diffSeconds, 1), Math.max(maxTtl, 1));
   }
 
-  private sanitizeFileName(fileName: string) {
-    const sanitized = fileName.replace(/[\r\n"]/g, '').trim();
-    return sanitized || 'file';
-  }
 
   private isNotFoundError(error: unknown) {
     if (!error || typeof error !== 'object') {

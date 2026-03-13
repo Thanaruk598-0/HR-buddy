@@ -16,6 +16,7 @@ import type { Request, Response } from 'express';
 import { RateLimitPolicy } from '../../../common/security/rate-limit.decorator';
 import { LocalMockAttachmentStorageService } from './local-mock-attachment-storage.service';
 import { verifyLocalMockPresignSignature } from './local-mock-presign-signature.util';
+import { buildContentDispositionHeader } from './content-disposition.util';
 
 @RateLimitPolicy('messengerLink')
 @Controller('storage/mock')
@@ -120,17 +121,17 @@ export class LocalMockAttachmentStorageController {
       });
     }
 
-    const downloadName = this.sanitizeFileName(fileName ?? 'file');
     const disposition = this.normalizeDisposition(dispositionQuery);
+    const contentDisposition = buildContentDispositionHeader({
+      disposition,
+      fileName: fileName ?? 'file',
+    });
 
     res.setHeader(
       'content-type',
       object.contentType ?? 'application/octet-stream',
     );
-    res.setHeader(
-      'content-disposition',
-      `${disposition}; filename="${downloadName}"`,
-    );
+    res.setHeader('content-disposition', contentDisposition);
     res.send(object.content);
   }
 
@@ -318,10 +319,6 @@ export class LocalMockAttachmentStorageController {
     return null;
   }
 
-  private sanitizeFileName(fileName: string) {
-    const sanitized = fileName.replace(/[\r\n"]/g, '').trim();
-    return sanitized || 'file';
-  }
 
   private normalizeDisposition(value: string | undefined) {
     if (value === 'inline') {

@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { RouteGuard } from "@/components/guards/route-guard";
 import { Button, SelectField, TextField, TextareaField } from "@/components/ui/form-controls";
 import { VideoPreviewModal } from "@/components/ui/video-preview-modal";
+import { downloadFileFromPresignedUrl } from "@/lib/attachments/download";
 import { ApiError } from "@/lib/api/client";
 import {
   getAcceptMimeTypes,
@@ -323,7 +324,10 @@ function AdminRequestDetailContent() {
 
     try {
       const result = await getAdminAttachmentDownloadUrl(detail.id, attachmentId, "download");
-      window.open(result.downloadUrl, "_blank", "noopener,noreferrer");
+      await downloadFileFromPresignedUrl({
+        downloadUrl: result.downloadUrl,
+        fallbackFileName: result.fileName,
+      });
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
