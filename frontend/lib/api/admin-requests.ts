@@ -278,7 +278,11 @@ export async function completeAdminAttachmentUpload(requestId: string, uploadTok
   });
 }
 
-export async function getAdminAttachmentDownloadUrl(requestId: string, attachmentId: string) {
+export async function getAdminAttachmentDownloadUrl(
+  requestId: string,
+  attachmentId: string,
+  mode: 'download' | 'inline' = 'download',
+) {
   return apiFetch<{
     attachmentId: string;
     fileName: string;
@@ -290,6 +294,7 @@ export async function getAdminAttachmentDownloadUrl(requestId: string, attachmen
   }>(`/admin/requests/${requestId}/attachments/${attachmentId}/download-url`, {
     method: "GET",
     tokenType: "admin",
+    query: { mode },
   });
 }
 
@@ -366,4 +371,3 @@ export async function downloadAdminRequestsCsv(
     csv: await response.text(),
   };
 }
-

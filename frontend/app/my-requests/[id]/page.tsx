@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { RouteGuard } from "@/components/guards/route-guard";
 import { Button, SelectField, TextareaField } from "@/components/ui/form-controls";
+import { VideoPreviewModal } from "@/components/ui/video-preview-modal";
 import { ApiError } from "@/lib/api/client";
 import {
   getAcceptMimeTypes,
@@ -61,6 +62,10 @@ function formatFileSize(bytes: number) {
   return `${(kb / 1024).toFixed(1)} MB`;
 }
 
+function isVideoAttachment(fileKind: string, mimeType: string) {
+  return fileKind === "VIDEO" || mimeType.toLowerCase().startsWith("video/");
+}
+
 export default function Page() {
   return (
     <RouteGuard tokenType="employee" redirectTo="/auth/otp">
@@ -85,6 +90,8 @@ function MyRequestDetailContent() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
 
   const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null);
+  const [previewingAttachmentId, setPreviewingAttachmentId] = useState<string | null>(null);
+  const [videoPreview, setVideoPreview] = useState<{ attachmentId: string; fileName: string; url: string } | null>(null);
 
   const canCancel = useMemo(() => {
     if (!detail) {
@@ -202,7 +209,7 @@ function MyRequestDetailContent() {
     setErrorMessage(null);
 
     try {
-      const result = await getMyRequestAttachmentDownloadUrl(detail.id, attachmentId);
+      const result = await getMyRequestAttachmentDownloadUrl(detail.id, attachmentId, "download");
       window.open(result.downloadUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       if (error instanceof ApiError) {
@@ -212,6 +219,32 @@ function MyRequestDetailContent() {
       }
     } finally {
       setDownloadingAttachmentId(null);
+    }
+  };
+
+  const handlePreviewAttachment = async (attachmentId: string, fileName: string) => {
+    if (!detail) {
+      return;
+    }
+
+    setPreviewingAttachmentId(attachmentId);
+    setErrorMessage(null);
+
+    try {
+      const result = await getMyRequestAttachmentDownloadUrl(detail.id, attachmentId, "inline");
+      setVideoPreview({
+        attachmentId,
+        fileName,
+        url: result.downloadUrl,
+      });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Failed to generate attachment preview URL");
+      }
+    } finally {
+      setPreviewingAttachmentId(null);
     }
   };
 
@@ -385,7 +418,8 @@ function MyRequestDetailContent() {
             {detail.attachments.length === 0 ? (
               <p className="mt-3 text-sm text-slate-600">No attachments.</p>
             ) : (
-              <ul className="mt-3 space-y-2">
+              <>
+                <ul className="mt-3 space-y-2">
                 {detail.attachments.map((attachment) => (
                   <li key={attachment.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                     <div className="text-sm text-slate-700">
@@ -394,17 +428,32 @@ function MyRequestDetailContent() {
                         {attachment.fileKind} | {attachment.mimeType} | {formatFileSize(attachment.fileSize)} | {formatDateTime(attachment.createdAt)}
                       </p>
                     </div>
-                    <Button
-                      type="button"
-                      className="bg-white text-slate-700 ring-1 ring-slate-300 hover:bg-slate-100"
-                      onClick={() => void handleDownloadAttachment(attachment.id)}
-                      disabled={downloadingAttachmentId === attachment.id}
-                    >
-                      {downloadingAttachmentId === attachment.id ? "Preparing..." : "Download"}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {isVideoAttachment(attachment.fileKind, attachment.mimeType) ? (
+                        <Button
+                          type="button"
+                          className="bg-white text-slate-700 ring-1 ring-slate-300 hover:bg-slate-100"
+                          onClick={() => void handlePreviewAttachment(attachment.id, attachment.fileName)}
+                          disabled={previewingAttachmentId === attachment.id}
+                        >
+                          {previewingAttachmentId === attachment.id ? "Preparing..." : "Preview"}
+                        </Button>
+                      ) : null}
+
+                      <Button
+                        type="button"
+                        className="bg-white text-slate-700 ring-1 ring-slate-300 hover:bg-slate-100"
+                        onClick={() => void handleDownloadAttachment(attachment.id)}
+                        disabled={downloadingAttachmentId === attachment.id}
+                      >
+                        {downloadingAttachmentId === attachment.id ? "Preparing..." : "Download"}
+                      </Button>
+                    </div>
                   </li>
                 ))}
               </ul>
+
+              </>
             )}
           </section>
 
@@ -461,6 +510,13 @@ function MyRequestDetailContent() {
           {errorMessage}
         </section>
       ) : null}
+
+      <VideoPreviewModal
+        open={Boolean(videoPreview)}
+        title={videoPreview ? `Video preview: ${videoPreview.fileName}` : "Video preview"}
+        src={videoPreview?.url ?? ""}
+        onClose={() => setVideoPreview(null)}
+      />
     </main>
   );
 }

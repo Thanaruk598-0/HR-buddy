@@ -156,7 +156,11 @@ export async function cancelMyRequest(id: string, reason: string) {
   });
 }
 
-export async function getMyRequestAttachmentDownloadUrl(requestId: string, attachmentId: string) {
+export async function getMyRequestAttachmentDownloadUrl(
+  requestId: string,
+  attachmentId: string,
+  mode: 'download' | 'inline' = 'download',
+) {
   return apiFetch<{
     attachmentId: string;
     fileName: string;
@@ -168,6 +172,7 @@ export async function getMyRequestAttachmentDownloadUrl(requestId: string, attac
   }>(`/requests/${requestId}/attachments/${attachmentId}/download-url`, {
     method: "GET",
     tokenType: "employee",
+    query: { mode },
   });
 }
 
