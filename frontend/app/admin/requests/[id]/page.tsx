@@ -7,6 +7,7 @@ import { RouteGuard } from "@/components/guards/route-guard";
 import { Button, SelectField, TextField, TextareaField } from "@/components/ui/form-controls";
 import { VideoPreviewModal } from "@/components/ui/video-preview-modal";
 import { downloadFileFromPresignedUrl } from "@/lib/attachments/download";
+import { getDocumentTypeLabel } from "@/lib/attachments/document-type-label";
 import { ApiError } from "@/lib/api/client";
 import {
   getAcceptMimeTypes,
@@ -618,7 +619,7 @@ function AdminRequestDetailContent() {
                     <div className="text-sm text-slate-700">
                       <p className="font-medium text-slate-900">{attachment.fileName}</p>
                       <p>
-                        {attachment.fileKind} | {attachment.mimeType} | {formatFileSize(attachment.fileSize)}
+                        {attachment.fileKind} | {attachment.fileKind === "DOCUMENT" ? getDocumentTypeLabel(attachment.mimeType, attachment.fileName) : attachment.mimeType} | {formatFileSize(attachment.fileSize)}
                       </p>
                       <p className="text-xs text-slate-500">{formatDateTime(attachment.createdAt)}</p>
                     </div>

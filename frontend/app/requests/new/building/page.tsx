@@ -34,6 +34,7 @@ import {
 import { VideoPreviewModal } from "@/components/ui/video-preview-modal";
 import { ImagePreviewModal } from "@/components/ui/image-preview-modal";
 import { DocumentPreviewModal } from "@/components/ui/document-preview-modal";
+import { getDocumentTypeLabel } from "@/lib/attachments/document-type-label";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -510,6 +511,25 @@ export default function Page() {
 
   const handleOpenDocumentPreview = (preview: AttachmentPreview) => {
     setDocumentPreview(preview);
+  };
+
+  const handleDownloadDocumentFile = (preview: AttachmentPreview) => {
+    const link = document.createElement("a");
+    link.href = preview.previewUrl;
+    link.download = preview.file.name;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDocumentAction = (preview: AttachmentPreview) => {
+    if (preview.mimeType.toLowerCase() === "application/pdf") {
+      handleOpenDocumentPreview(preview);
+      return;
+    }
+
+    handleDownloadDocumentFile(preview);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -1066,7 +1086,7 @@ export default function Page() {
                           {preview.fileKind === "DOCUMENT" && (
                             <button
                               type="button"
-                              onClick={() => handleOpenDocumentPreview(preview)}
+                              onClick={() => handleDocumentAction(preview)}
                               className="flex w-full items-center gap-2.5 rounded-lg border border-slate-100 bg-slate-50 p-2.5 text-left transition hover:border-[#0e2d4c]/20 hover:bg-[#0e2d4c]/5"
                             >
                               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#0e2d4c]/10 text-[#0e2d4c]">
@@ -1090,13 +1110,11 @@ export default function Page() {
                                   {preview.file.name}
                                 </p>
                                 <p className="mt-0.5 text-[10px] uppercase tracking-wide text-slate-400">
-                                  {preview.mimeType
-                                    .split("/")[1]
-                                    ?.toUpperCase() ?? "DOCUMENT"}
+                                  {getDocumentTypeLabel(preview.mimeType, preview.file.name)}
                                 </p>
                               </div>
                               <span className="shrink-0 rounded-md bg-[#0e2d4c] px-2 py-0.5 text-[10px] font-bold text-white">
-                                เปิด
+                                {preview.mimeType.toLowerCase() === "application/pdf" ? "Open" : "Download"}
                               </span>
                             </button>
                           )}
@@ -1275,3 +1293,5 @@ export default function Page() {
     </main>
   );
 }
+
+

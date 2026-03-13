@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect } from "react";
 
@@ -39,6 +39,10 @@ export function DocumentPreviewModal({
   }
 
   const isPdf = mimeType === "application/pdf";
+  const isBlobSource = src.startsWith("blob:");
+  const pdfViewerSrc = isBlobSource
+    ? `${src}#toolbar=0&navpanes=0&statusbar=0`
+    : src;
 
   return (
     <div
@@ -66,7 +70,7 @@ export function DocumentPreviewModal({
           {isPdf ? (
             <iframe
               title={title}
-              src={src}
+              src={pdfViewerSrc}
               className="h-[68vh] max-h-[760px] w-full rounded-lg border border-slate-200 bg-white"
             />
           ) : (
