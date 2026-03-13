@@ -45,6 +45,7 @@ export class LocalAttachmentStorageProvider implements AttachmentStorageProvider
   async createDownloadPresign(params: {
     storageKey: string;
     fileName: string;
+    disposition?: 'attachment' | 'inline';
     expiresAt: Date;
   }): Promise<AttachmentDownloadPresign> {
     const base = this.baseUrl();
@@ -57,7 +58,7 @@ export class LocalAttachmentStorageProvider implements AttachmentStorageProvider
     });
 
     return {
-      url: `${base}/download/${encodeURIComponent(params.storageKey)}?fileName=${encodeURIComponent(params.fileName)}&expiresAt=${encodeURIComponent(expiresAtIso)}&signature=${encodeURIComponent(signature)}`,
+      url: `${base}/download/${encodeURIComponent(params.storageKey)}?fileName=${encodeURIComponent(params.fileName)}&disposition=${encodeURIComponent(params.disposition ?? 'attachment')}&expiresAt=${encodeURIComponent(expiresAtIso)}&signature=${encodeURIComponent(signature)}`,
       expiresAt: params.expiresAt,
     };
   }

@@ -14,6 +14,7 @@ import type { Response } from 'express';
 import { CompleteAttachmentUploadDto } from '../attachments/dto/complete-attachment-upload.dto';
 import { CreateAttachmentDto } from '../attachments/dto/create-attachment.dto';
 import { CreateAttachmentUploadTicketDto } from '../attachments/dto/create-attachment-upload-ticket.dto';
+import { AttachmentDownloadUrlQueryDto } from '../attachments/dto/attachment-download-url.query.dto';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { AdminSessionGuard } from '../admin-auth/admin-session.guard';
 import { AdminRequestActionDto } from './dto/admin-request-action.dto';
@@ -68,8 +69,13 @@ export class AdminRequestsController {
   downloadAttachment(
     @Param('id') id: string,
     @Param('attachmentId') attachmentId: string,
+    @Query() query: AttachmentDownloadUrlQueryDto,
   ) {
-    return this.attachmentsService.getAdminDownloadUrl(id, attachmentId);
+    return this.attachmentsService.getAdminDownloadUrl(
+      id,
+      attachmentId,
+      query.mode,
+    );
   }
 
   @Post(':id/attachments/presign')

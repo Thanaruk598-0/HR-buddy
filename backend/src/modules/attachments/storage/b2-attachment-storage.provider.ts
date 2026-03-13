@@ -53,6 +53,7 @@ export class B2AttachmentStorageProvider implements AttachmentStorageProvider {
   async createDownloadPresign(params: {
     storageKey: string;
     fileName: string;
+    disposition?: 'attachment' | 'inline';
     expiresAt: Date;
   }): Promise<AttachmentDownloadPresign> {
     const { bucketName } = this.readRequiredConfig();
@@ -63,7 +64,7 @@ export class B2AttachmentStorageProvider implements AttachmentStorageProvider {
     const command = new GetObjectCommand({
       Bucket: bucketName,
       Key: params.storageKey,
-      ResponseContentDisposition: `attachment; filename="${fileName}"`,
+      ResponseContentDisposition: `${params.disposition ?? 'attachment'}; filename="${fileName}"`,
     });
 
     const url = await getSignedUrl(this.createClient(), command, {

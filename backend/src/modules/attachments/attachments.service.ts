@@ -17,6 +17,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CompleteAttachmentUploadDto } from './dto/complete-attachment-upload.dto';
 import { CreateAttachmentDto } from './dto/create-attachment.dto';
 import { CreateAttachmentUploadTicketDto } from './dto/create-attachment-upload-ticket.dto';
+import { AttachmentDownloadMode } from './dto/attachment-download-url.query.dto';
 import {
   assertAttachmentCountLimit,
   assertAttachmentPolicy,
@@ -135,19 +136,24 @@ export class AttachmentsService {
     requestId: string,
     attachmentId: string,
     phone: string,
+    mode: AttachmentDownloadMode = 'download',
   ) {
     return this.prisma.$transaction(async (tx) => {
       await this.assertEmployeeRequestAccess(tx, requestId, phone);
 
-      return this.createDownloadUrl(tx, requestId, attachmentId);
+      return this.createDownloadUrl(tx, requestId, attachmentId, mode);
     });
   }
 
-  async getAdminDownloadUrl(requestId: string, attachmentId: string) {
+  async getAdminDownloadUrl(
+    requestId: string,
+    attachmentId: string,
+    mode: AttachmentDownloadMode = 'download',
+  ) {
     return this.prisma.$transaction(async (tx) => {
       await this.assertRequestExists(tx, requestId);
 
-      return this.createDownloadUrl(tx, requestId, attachmentId);
+      return this.createDownloadUrl(tx, requestId, attachmentId, mode);
     });
   }
 
@@ -284,6 +290,7 @@ export class AttachmentsService {
     tx: Prisma.TransactionClient,
     requestId: string,
     attachmentId: string,
+    mode: AttachmentDownloadMode,
   ) {
     const attachment = await tx.requestAttachment.findFirst({
       where: {
@@ -314,6 +321,7 @@ export class AttachmentsService {
       .createDownloadPresign({
         storageKey: attachment.storageKey,
         fileName: attachment.fileName,
+        disposition: mode === 'inline' ? 'inline' : 'attachment',
         expiresAt,
       });
 

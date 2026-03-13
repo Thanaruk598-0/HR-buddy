@@ -57,12 +57,14 @@ export class WebhookAttachmentStorageProvider implements AttachmentStorageProvid
   async createDownloadPresign(params: {
     storageKey: string;
     fileName: string;
+    disposition?: 'attachment' | 'inline';
     expiresAt: Date;
   }): Promise<AttachmentDownloadPresign> {
     const response = await this.callWebhook({
       action: 'presign_download',
       storageKey: params.storageKey,
       fileName: params.fileName,
+      disposition: params.disposition ?? 'attachment',
       expiresAt: params.expiresAt.toISOString(),
     });
 

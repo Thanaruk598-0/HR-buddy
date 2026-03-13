@@ -1,14 +1,14 @@
 import { BadRequestException } from '@nestjs/common';
 import { FileKind } from '@prisma/client';
 
-const MAX_ATTACHMENTS_PER_REQUEST = 10;
+const MAX_ATTACHMENTS_PER_REQUEST = 5;
 
 const FILE_POLICY: Record<
   FileKind,
   { maxSize: number; allowedMimeTypes: string[] }
 > = {
   IMAGE: {
-    maxSize: 10 * 1024 * 1024,
+    maxSize: 50 * 1024 * 1024,
     allowedMimeTypes: [
       'image/jpeg',
       'image/jpg',
@@ -20,7 +20,7 @@ const FILE_POLICY: Record<
     ],
   },
   VIDEO: {
-    maxSize: 100 * 1024 * 1024,
+    maxSize: 50 * 1024 * 1024,
     allowedMimeTypes: [
       'video/mp4',
       'video/quicktime',
@@ -30,7 +30,7 @@ const FILE_POLICY: Record<
     ],
   },
   DOCUMENT: {
-    maxSize: 20 * 1024 * 1024,
+    maxSize: 50 * 1024 * 1024,
     allowedMimeTypes: [
       'application/pdf',
       'application/msword',
@@ -85,3 +85,4 @@ export function assertAttachmentCountLimit(currentCount: number) {
 export function attachmentCountLimit() {
   return MAX_ATTACHMENTS_PER_REQUEST;
 }
+

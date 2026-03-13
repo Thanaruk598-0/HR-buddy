@@ -26,6 +26,7 @@ export interface AttachmentStorageProvider {
   createDownloadPresign(params: {
     storageKey: string;
     fileName: string;
+    disposition?: 'attachment' | 'inline';
     expiresAt: Date;
   }): Promise<AttachmentDownloadPresign>;
 

@@ -88,6 +88,7 @@ export class LocalMockAttachmentStorageController {
   download(
     @Param('storageKey') storageKeyParam: string,
     @Query('fileName') fileName: string | undefined,
+    @Query('disposition') dispositionQuery: string | undefined,
     @Query('expiresAt') expiresAtQuery: string | string[] | undefined,
     @Query('signature') signatureQuery: string | string[] | undefined,
     @Req() req: Request,
@@ -120,6 +121,7 @@ export class LocalMockAttachmentStorageController {
     }
 
     const downloadName = this.sanitizeFileName(fileName ?? 'file');
+    const disposition = this.normalizeDisposition(dispositionQuery);
 
     res.setHeader(
       'content-type',
@@ -127,7 +129,7 @@ export class LocalMockAttachmentStorageController {
     );
     res.setHeader(
       'content-disposition',
-      `attachment; filename="${downloadName}"`,
+      `${disposition}; filename="${downloadName}"`,
     );
     res.send(object.content);
   }
@@ -321,6 +323,14 @@ export class LocalMockAttachmentStorageController {
     return sanitized || 'file';
   }
 
+  private normalizeDisposition(value: string | undefined) {
+    if (value === 'inline') {
+      return 'inline';
+    }
+
+    return 'attachment';
+  }
+
   private assertMockEndpointEnabled(req: Request) {
     const provider =
       this.config.get<string>('attachments.storage.provider') ?? 'local';
@@ -364,7 +374,7 @@ export class LocalMockAttachmentStorageController {
     );
 
     if (!configured || configured <= 0) {
-      return 100 * 1024 * 1024;
+      return 50 * 1024 * 1024;
     }
 
     return configured;

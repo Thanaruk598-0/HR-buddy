@@ -12,6 +12,7 @@ import { RateLimitPolicy } from '../../common/security/rate-limit.decorator';
 import { CompleteAttachmentUploadDto } from '../attachments/dto/complete-attachment-upload.dto';
 import { CreateAttachmentDto } from '../attachments/dto/create-attachment.dto';
 import { CreateAttachmentUploadTicketDto } from '../attachments/dto/create-attachment-upload-ticket.dto';
+import { AttachmentDownloadUrlQueryDto } from '../attachments/dto/attachment-download-url.query.dto';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { EmployeeSession } from '../auth-otp/employee-session.decorator';
 import { EmployeeSessionGuard } from '../auth-otp/employee-session.guard';
@@ -88,12 +89,14 @@ export class RequestsController {
   downloadAttachment(
     @Param('id') id: string,
     @Param('attachmentId') attachmentId: string,
+    @Query() query: AttachmentDownloadUrlQueryDto,
     @EmployeeSession() session: EmployeeSessionPrincipal,
   ) {
     return this.attachmentsService.getEmployeeDownloadUrl(
       id,
       attachmentId,
       session.phone,
+      query.mode,
     );
   }
 
